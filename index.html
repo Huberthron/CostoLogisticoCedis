@@ -15,6 +15,7 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     
     <!-- SheetJS (Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -100,24 +101,10 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen w-screen overflow-hidden flex flex-col font-sans">
+<body class="bg-slate-50 text-slate-800 min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="fixed top-2 right-4 z-50 flex flex-col gap-2"></div>
-
-    <!-- Modal para URL -->
-    <div id="url-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex-col items-center justify-center p-4">
-        <!-- Contenido Modal (Sin cambios) -->
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative">
-            <button id="close-modal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0"><i data-lucide="cloud-download" class="w-5 h-5"></i></div>
-                <div><h3 class="text-lg font-bold text-slate-900 leading-tight">Vincular archivo online</h3><p class="text-xs text-slate-500">Enlaces GitHub (Raw) o Google Drive.</p></div>
-            </div>
-            <input type="url" id="url-input" placeholder="Ej: https://raw.githubusercontent.com/..." class="w-full bg-slate-50 border border-slate-300 text-sm rounded-lg p-2.5 outline-none mb-3">
-            <button id="btn-load-url" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg text-sm px-5 py-2.5">Sincronizar</button>
-        </div>
-    </div>
 
     <!-- Pantalla de Carga -->
     <div id="loading-overlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
@@ -130,29 +117,38 @@
 
     <!-- Header Superior -->
     <header class="bg-white border-b border-slate-200 shrink-0 z-40 relative shadow-sm h-14">
-        <div class="px-4 h-full flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img src="logo chavez 2.png" alt="Logo Chávez" class="h-8 object-contain">
-                <div class="h-6 w-px bg-slate-300 mx-1"></div> <!-- Separador visual -->
-                <h1 class="text-base font-black text-slate-900 tracking-tight leading-none mt-0.5">Costo Logístico 2026</h1>
+        <div class="px-3 sm:px-4 h-full flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button id="btn-toggle-sidebar" class="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-slate-100 text-slate-600 shrink-0" aria-label="Ranking de proveedores"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
+                <img src="logo chavez 2.png" alt="Logo Chávez" class="h-7 sm:h-8 object-contain shrink-0">
+                <div class="h-6 w-px bg-slate-300 mx-1 hidden sm:block"></div> <!-- Separador visual -->
+                <h1 class="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-none mt-0.5 truncate">Costo Logístico 2026</h1>
             </div>
             
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <div id="last-updated" class="text-[10px] text-slate-500 hidden sm:block bg-slate-50 px-2 py-1 rounded-full border border-slate-200">Esperando datos</div>
-                <button id="btn-open-url" class="cursor-pointer inline-flex items-center gap-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-2.5 py-1.5 rounded-md text-xs font-bold shadow-sm"><i data-lucide="link" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Vincular</span></button>
-                <label for="excel-upload" class="cursor-pointer inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm"><i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i><span>Cargar Local</span><input type="file" id="excel-upload" accept=".xlsx, .xls, .csv" class="hidden"></label>
+                <div id="bolivia-clock" class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600 shrink-0"></i>
+                    <span id="clock-text">Cargando hora...</span>
+                </div>
             </div>
         </div>
     </header>
 
+    <!-- Fondo oscuro al abrir el panel de proveedores en móvil -->
+    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-slate-900/50 z-30 lg:hidden"></div>
+
     <!-- Contenedor Principal -->
-    <div class="flex-1 flex overflow-hidden relative">
+    <div class="flex-1 flex overflow-visible lg:overflow-hidden relative">
         
-        <!-- Sidebar Izquierda: Scroll Infinito Proveedores -->
-        <aside id="sidebar-providers" class="hidden w-[280px] lg:w-[320px] bg-white border-r border-slate-200 flex flex-col shrink-0 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] h-full">
-            <div class="p-4 border-b border-slate-100 shrink-0 bg-slate-50/50">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-600"></i>Ranking Proveedores</h3>
-                <p class="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide font-medium">Flujo Continuo</p>
+        <!-- Sidebar Izquierda: Scroll Infinito Proveedores (drawer en móvil, fijo en escritorio) -->
+        <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-white border-r border-slate-200 flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
+            <div class="p-4 border-b border-slate-100 shrink-0 bg-slate-50/50 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-600"></i>Ranking Proveedores</h3>
+                    <p class="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide font-medium">Flujo Continuo</p>
+                </div>
+                <button id="btn-close-sidebar" class="lg:hidden text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
             <div class="flex-1 overflow-hidden relative mask-scroll p-4" id="provider-container">
@@ -161,23 +157,23 @@
         </aside>
 
         <!-- Área Central -->
-        <main class="flex-1 flex flex-col relative bg-slate-50 overflow-hidden p-3 lg:p-4 gap-4">
+        <main class="flex-1 flex flex-col relative bg-slate-50 overflow-visible lg:overflow-hidden p-3 lg:p-4 gap-4">
             
             <!-- Estado Vacío -->
             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-slate-50/90 backdrop-blur-sm z-20">
                 <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 max-w-sm w-full">
                     <img src="logo chavez 2.png" alt="Logo" class="h-12 mx-auto mb-4 opacity-80">
                     <h2 class="text-lg font-black text-slate-800 mb-1">Área de trabajo vacía</h2>
-                    <p class="text-slate-500 text-xs mb-6">Carga tu Excel para generar las visualizaciones.</p>
+                    <p class="text-slate-500 text-xs mb-4">Sincronizando datos automáticamente. Si tarda, puedes cargar el archivo manualmente.</p>
                     <label for="excel-upload-main" class="cursor-pointer w-full flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md"><i data-lucide="upload" class="w-4 h-4"></i> Cargar Archivo<input type="file" id="excel-upload-main" accept=".xlsx, .xls, .csv" class="hidden"></label>
                 </div>
             </div>
 
             <!-- Contenido del Dashboard -->
-            <div id="dashboard-content" class="hidden flex-col h-full gap-4">
+            <div id="dashboard-content" class="hidden flex-col gap-4 lg:h-full">
                 
                 <!-- Filtros Dropdown Multi-Select -->
-                <section class="flex-none bg-white p-3 rounded-xl card-glow border border-slate-100 flex gap-4 items-start relative z-30">
+                <section class="flex-none bg-white p-3 rounded-xl card-glow border border-slate-100 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-start relative z-30">
 
                     <!-- Dropdown Meses -->
                     <div class="flex-1 relative" id="dd-month">
@@ -215,7 +211,7 @@
 
                 <!-- Tarjetas KPI: 5 en linea horizontal -->
                 <section class="flex-none">
-                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                         
                         <div class="bg-white p-3.5 rounded-xl border border-slate-100 border-l-4 border-l-blue-500 card-glow relative z-10">
                             <h3 class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">CL Selección Actual</h3>
@@ -258,7 +254,7 @@
                         <div class="flex-none mb-2">
                             <h3 class="text-sm font-black text-slate-800">Tendencia: Proyección vs Realidad</h3>
                         </div>
-                        <div class="flex-1 relative w-full h-full min-h-0">
+                        <div class="flex-1 relative w-full h-[280px] lg:h-full min-h-0">
                             <canvas id="mainChart"></canvas>
                         </div>
                     </div>
@@ -270,7 +266,7 @@
                             <p class="text-[10px] text-slate-400 font-bold uppercase">Cobrado vs Proyección Total</p>
                         </div>
                         <div class="flex-1 relative w-full flex items-center justify-center min-h-0 pt-2">
-                            <div class="relative w-full h-full max-h-[220px] flex items-center justify-center">
+                            <div class="relative w-full h-[220px] lg:h-full lg:max-h-[220px] flex items-center justify-center">
                                 <canvas id="donutChart"></canvas>
                                 <!-- Label central absoluto para el porcentaje -->
                                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
@@ -289,6 +285,8 @@
 
     <script>
         lucide.createIcons();
+        if (window.ChartDataLabels) Chart.register(ChartDataLabels);
+        Chart.defaults.set('plugins.datalabels', { display: false });
 
         // ============================================================
         // AUTO-CARGA DESDE GOOGLE DRIVE
@@ -308,10 +306,10 @@
 
         // Elementos DOM
         const els = {
-            fInpHead: document.getElementById('excel-upload'), fInpMain: document.getElementById('excel-upload-main'),
-            modal: document.getElementById('url-modal'), urlInp: document.getElementById('url-input'),
-            btnUrl: document.getElementById('btn-open-url'), btnLoadUrl: document.getElementById('btn-load-url'),
+            fInpMain: document.getElementById('excel-upload-main'),
+            clockText: document.getElementById('clock-text'),
             empty: document.getElementById('empty-state'), dash: document.getElementById('dashboard-content'), side: document.getElementById('sidebar-providers'),
+            sideBackdrop: document.getElementById('sidebar-backdrop'), btnToggleSide: document.getElementById('btn-toggle-sidebar'), btnCloseSide: document.getElementById('btn-close-sidebar'),
             load: document.getElementById('loading-overlay'), lastUp: document.getElementById('last-updated'), loadMsg: document.getElementById('load-msg'),
             ddMonthBtn: document.getElementById('btn-dd-month'), ddMonthPanel: document.getElementById('panel-dd-month'), ddMonthOpts: document.getElementById('opts-dd-month'), ddMonthLbl: document.getElementById('lbl-dd-month'), ddMonthChev: document.getElementById('chev-dd-month'),
             ddProvBtn: document.getElementById('btn-dd-provider'), ddProvPanel: document.getElementById('panel-dd-provider'), ddProvOpts: document.getElementById('opts-dd-provider'), ddProvLbl: document.getElementById('lbl-dd-provider'), ddProvChev: document.getElementById('chev-dd-provider'),
@@ -340,14 +338,37 @@
         };
 
         // Listeners
-        els.fInpHead.addEventListener('change', (e) => handleFile(e.target.files[0]));
         els.fInpMain.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+        // Reloj en vivo con fecha, día y hora de Bolivia (America/La_Paz)
+        function updateBoliviaClock() {
+            const now = new Date();
+            const dateFmt = new Intl.DateTimeFormat('es-BO', { timeZone: 'America/La_Paz', weekday: 'long', day: '2-digit', month: 'short' });
+            const timeFmt = new Intl.DateTimeFormat('es-BO', { timeZone: 'America/La_Paz', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            let dateStr = dateFmt.format(now);
+            dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+            if (els.clockText) els.clockText.textContent = `${dateStr} · ${timeFmt.format(now)}`;
+        }
+        updateBoliviaClock();
+        setInterval(updateBoliviaClock, 1000);
+
         // Toggle apertura/cierre de dropdowns
         const toggleDropdown = (panel, chevron, forceClose = false) => {
             const isOpen = !panel.classList.contains('hidden');
             if (forceClose || isOpen) { panel.classList.add('hidden'); chevron.style.transform = 'rotate(0deg)'; }
             else { panel.classList.remove('hidden'); chevron.style.transform = 'rotate(180deg)'; }
         };
+        // Panel deslizable de "Ranking Proveedores" en móvil
+        function toggleMobileSidebar(open) {
+            els.side.classList.toggle('translate-x-0', open);
+            els.side.classList.toggle('-translate-x-full', !open);
+            els.sideBackdrop.classList.toggle('hidden', !open);
+        }
+        els.btnToggleSide?.addEventListener('click', () => toggleMobileSidebar(!els.side.classList.contains('translate-x-0')));
+        els.btnCloseSide?.addEventListener('click', () => toggleMobileSidebar(false));
+        els.sideBackdrop?.addEventListener('click', () => toggleMobileSidebar(false));
+        window.matchMedia('(min-width: 1024px)').addEventListener('change', (e) => { if (e.matches) toggleMobileSidebar(false); });
+
         els.ddMonthBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(els.ddProvPanel, els.ddProvChev, true); toggleDropdown(els.ddMonthPanel, els.ddMonthChev); });
         els.ddProvBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(els.ddMonthPanel, els.ddMonthChev, true); toggleDropdown(els.ddProvPanel, els.ddProvChev); });
         document.addEventListener('click', (e) => {
@@ -370,13 +391,8 @@
             btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel();
             updateDashboard();
         }));
-        els.btnUrl.addEventListener('click', () => els.modal.classList.replace('hidden', 'flex'));
-        document.getElementById('close-modal').addEventListener('click', () => els.modal.classList.replace('flex', 'hidden'));
-        els.btnLoadUrl.addEventListener('click', () => loadFromUrl(els.urlInp.value));
-
         async function loadFromUrl(url, silent = false) {
             if(!url) return showToast("Enlace inválido", "error");
-            els.modal.classList.replace('flex', 'hidden');
             if (!silent) els.load.classList.replace('hidden', 'flex');
             try {
                 let fUrl = url;
@@ -405,7 +421,7 @@
             if (!file) return; els.load.classList.replace('hidden', 'flex'); els.loadMsg.textContent = "Procesando archivo local...";
             try { processWorkbook(await file.arrayBuffer()); } 
             catch(e) { console.error(e); showToast(e.message || "Error desconocido al procesar", "error"); els.load.classList.replace('flex', 'hidden'); } 
-            finally { els.fInpHead.value = ''; els.fInpMain.value = ''; }
+            finally { els.fInpMain.value = ''; }
         }
 
         function processWorkbook(buffer, silent = false) {
@@ -681,6 +697,21 @@
                                     return ` ${c.label}: Bs ${Intl.NumberFormat('es-BO').format(c.parsed)}`;
                                 }
                             }
+                        },
+                        datalabels: {
+                            display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                            color: (ctx) => ctx.dataIndex === 0 ? '#ffffff' : '#475569',
+                            backgroundColor: (ctx) => ctx.dataIndex === 0 ? 'rgba(71, 85, 105, 0.85)' : 'rgba(148, 163, 184, 0.35)',
+                            borderRadius: 6,
+                            padding: { top: 4, bottom: 4, left: 6, right: 6 },
+                            font: { size: 11, weight: 'bold' },
+                            formatter: (value, ctx) => {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? (value / total * 100) : 0;
+                                return [`${pct.toFixed(1)}%`, Intl.NumberFormat('es-BO', { notation: 'compact' }).format(value)];
+                            },
+                            align: 'center',
+                            anchor: 'center'
                         }
                     }
                 }
