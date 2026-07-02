@@ -5,22 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Costo Logístico 2026</title>
     
-    <!-- Google Fonts: Roboto -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     
-    <!-- SheetJS (Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
@@ -69,10 +64,11 @@
             animation: fadeStatus 2.5s ease-in-out infinite;
         }
 
-        /* Ocultar barra de scroll genérica */
-        ::-webkit-scrollbar { width: 4px; }
+        /* Ocultar barra de scroll genérica pero hacerla un poco más ancha para usabilidad */
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         /* Estilos personalizados para los Select Multiple */
         select[multiple] {
@@ -85,7 +81,7 @@
             transition: all 0.2s;
         }
         select[multiple] option:checked {
-            background-color: #e2e8f0; /* Fondo gris claro suave */
+            background-color: #e2e8f0; 
             color: #0f172a;
             font-weight: bold;
         }
@@ -103,10 +99,8 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
 
-    <!-- Toast Notifications -->
     <div id="toast-container" class="fixed top-2 right-4 z-50 flex flex-col gap-2"></div>
 
-    <!-- Pantalla de Carga -->
     <div id="loading-overlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
         <div class="relative w-14 h-14 flex items-center justify-center mb-3">
             <div class="absolute inset-0 border-4 border-slate-100 border-t-brand-600 rounded-full animate-spin"></div>
@@ -115,13 +109,12 @@
         <h3 class="text-lg font-black text-slate-800" id="load-msg">Procesando información...</h3>
     </div>
 
-    <!-- Header Superior -->
     <header class="bg-white border-b border-slate-200 shrink-0 z-40 relative shadow-sm h-14">
         <div class="px-3 sm:px-4 h-full flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button id="btn-toggle-sidebar" class="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-slate-100 text-slate-600 shrink-0" aria-label="Ranking de proveedores"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
                 <img src="logo chavez 2.png" alt="Logo Chávez" class="h-7 sm:h-8 object-contain shrink-0">
-                <div class="h-6 w-px bg-slate-300 mx-1 hidden sm:block"></div> <!-- Separador visual -->
+                <div class="h-6 w-px bg-slate-300 mx-1 hidden sm:block"></div> 
                 <h1 class="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-none mt-0.5 truncate">Costo Logístico 2026</h1>
             </div>
             
@@ -135,13 +128,10 @@
         </div>
     </header>
 
-    <!-- Fondo oscuro al abrir el panel de proveedores en móvil -->
     <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-slate-900/50 z-30 lg:hidden"></div>
 
-    <!-- Contenedor Principal -->
     <div class="flex-1 flex overflow-visible lg:overflow-hidden relative">
         
-        <!-- Sidebar Izquierda: Scroll Infinito Proveedores (drawer en móvil, fijo en escritorio) -->
         <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-white border-r border-slate-200 flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
             <div class="p-4 border-b border-slate-100 shrink-0 bg-slate-50/50 flex items-center justify-between">
                 <div>
@@ -151,15 +141,13 @@
                 <button id="btn-close-sidebar" class="lg:hidden text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
-            <div class="flex-1 overflow-hidden relative mask-scroll p-4" id="provider-container">
+            <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
                 <div id="provider-track" class="track-scroller gap-4"></div>
             </div>
         </aside>
 
-        <!-- Área Central -->
         <main class="flex-1 flex flex-col relative bg-slate-50 overflow-visible lg:overflow-hidden p-3 lg:p-4 gap-4">
             
-            <!-- Estado Vacío -->
             <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-slate-50/90 backdrop-blur-sm z-20">
                 <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 max-w-sm w-full">
                     <img src="logo chavez 2.png" alt="Logo" class="h-12 mx-auto mb-4 opacity-80">
@@ -169,13 +157,10 @@
                 </div>
             </div>
 
-            <!-- Contenido del Dashboard -->
             <div id="dashboard-content" class="hidden flex-col gap-4 lg:h-full">
                 
-                <!-- Filtros Dropdown Multi-Select -->
                 <section class="flex-none bg-white p-3 rounded-xl card-glow border border-slate-100 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-start relative z-30">
 
-                    <!-- Dropdown Meses -->
                     <div class="flex-1 relative" id="dd-month">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="calendar-days" class="w-3 h-3"></i> Meses</label>
                         <button type="button" id="btn-dd-month" class="w-full bg-slate-50 border border-slate-200 hover:border-brand-400 text-slate-800 text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
@@ -187,11 +172,16 @@
                                 <button type="button" class="dd-select-all text-[10px] font-bold text-brand-600 hover:text-brand-700 px-1.5 py-1 rounded hover:bg-brand-50" data-target="month">Todos</button>
                                 <button type="button" class="dd-clear-all text-[10px] font-bold text-slate-400 hover:text-slate-600 px-1.5 py-1 rounded hover:bg-slate-100" data-target="month">Ninguno</button>
                             </div>
+                            <div class="p-2 border-b border-slate-100 bg-white">
+                                <div class="relative">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text" id="search-month" placeholder="Buscar mes..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded outline-none focus:border-brand-400 focus:bg-white transition-colors">
+                                </div>
+                            </div>
                             <div id="opts-dd-month" class="max-h-48 overflow-y-auto p-1.5"></div>
                         </div>
                     </div>
 
-                    <!-- Dropdown Proveedores -->
                     <div class="flex-1 relative" id="dd-provider">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i> Proveedores</label>
                         <button type="button" id="btn-dd-provider" class="w-full bg-slate-50 border border-slate-200 hover:border-brand-400 text-slate-800 text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
@@ -203,13 +193,18 @@
                                 <button type="button" class="dd-select-all text-[10px] font-bold text-brand-600 hover:text-brand-700 px-1.5 py-1 rounded hover:bg-brand-50" data-target="provider">Todos</button>
                                 <button type="button" class="dd-clear-all text-[10px] font-bold text-slate-400 hover:text-slate-600 px-1.5 py-1 rounded hover:bg-slate-100" data-target="provider">Ninguno</button>
                             </div>
+                            <div class="p-2 border-b border-slate-100 bg-white">
+                                <div class="relative">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text" id="search-provider" placeholder="Buscar proveedor..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded outline-none focus:border-brand-400 focus:bg-white transition-colors">
+                                </div>
+                            </div>
                             <div id="opts-dd-provider" class="max-h-48 overflow-y-auto p-1.5"></div>
                         </div>
                     </div>
 
                 </section>
 
-                <!-- Tarjetas KPI: 5 en linea horizontal -->
                 <section class="flex-none">
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                         
@@ -246,10 +241,8 @@
                     </div>
                 </section>
 
-                <!-- Zona de Gráficos (Línea + Anillo) -->
                 <section class="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
                     
-                    <!-- Gráfico Lineas (Proyección vs Real) -->
                     <div class="flex-[5] bg-white p-4 rounded-xl card-glow border border-slate-100 flex flex-col relative min-h-0 z-0">
                         <div class="flex-none mb-2">
                             <h3 class="text-sm font-black text-slate-800">Tendencia: Proyección vs Realidad</h3>
@@ -259,7 +252,6 @@
                         </div>
                     </div>
 
-                    <!-- Nuevo Gráfico Anillo (Cobrado vs Proyección) -->
                     <div class="flex-[2] bg-white p-4 rounded-xl card-glow border border-slate-100 flex flex-col relative min-h-0 z-0">
                         <div class="flex-none mb-2 text-center">
                             <h3 class="text-sm font-black text-slate-800">Progreso Anual</h3>
@@ -268,7 +260,6 @@
                         <div class="flex-1 relative w-full flex items-center justify-center min-h-0 pt-2">
                             <div class="relative w-full h-[220px] lg:h-full lg:max-h-[220px] flex items-center justify-center">
                                 <canvas id="donutChart"></canvas>
-                                <!-- Label central absoluto para el porcentaje -->
                                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
                                     <span id="donut-pct" class="text-3xl font-black text-slate-800 leading-none">0%</span>
                                     <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cobrado</span>
@@ -290,18 +281,14 @@
 
         // ============================================================
         // AUTO-CARGA DESDE GOOGLE DRIVE
-        // Pega aquí el link de tu archivo compartido en Drive.
-        // Mientras edites ESE MISMO archivo en Drive (no uno nuevo),
-        // el dashboard siempre traerá la última versión al abrirlo.
-        // Déjalo vacío ("") para desactivar la auto-carga.
         // ============================================================
         const AUTO_LOAD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDRPZbdY3KuYnHMtdusBham7oUa07KROIZkSb-IKDhgCE7TM2YhgSlIDUQ_9u79Q/pub?output=xlsx";
-        const AUTO_REFRESH_MINUTES = 5; // 0 = no refrescar solo, solo carga una vez al abrir
+        const AUTO_REFRESH_MINUTES = 5;
 
         // Estado Global
         let rawData = { proyeccion: [], costoLogistico: [], proveedores: [], deudores: [] };
         let chartInstance = null;
-        let donutInstance = null; // Instancia para el nuevo gráfico
+        let donutInstance = null; 
         const MONTHS_ORDER = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
         // Elementos DOM
@@ -316,7 +303,10 @@
             cClMes: document.getElementById('card-cl-mes-actual'),
             cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'),
-            donutPct: document.getElementById('donut-pct')
+            donutPct: document.getElementById('donut-pct'),
+            // Nuevos elementos de búsqueda
+            searchMonth: document.getElementById('search-month'),
+            searchProv: document.getElementById('search-provider')
         };
 
         const formatCurrency = (v) => new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB', maximumFractionDigits: 0 }).format(v || 0).replace('BOB', 'Bs ');
@@ -340,7 +330,18 @@
         // Listeners
         els.fInpMain.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-        // Reloj en vivo con fecha, día y hora de Bolivia (America/La_Paz)
+        // Filtro de búsqueda para los dropdowns
+        function filterOptions(term, container) {
+            const search = normalizeStr(term);
+            container.querySelectorAll('label').forEach(lbl => {
+                const txt = normalizeStr(lbl.textContent);
+                lbl.style.display = txt.includes(search) ? 'flex' : 'none';
+            });
+        }
+        els.searchMonth.addEventListener('input', (e) => filterOptions(e.target.value, els.ddMonthOpts));
+        els.searchProv.addEventListener('input', (e) => filterOptions(e.target.value, els.ddProvOpts));
+
+        // Reloj
         function updateBoliviaClock() {
             const now = new Date();
             const dateFmt = new Intl.DateTimeFormat('es-BO', { timeZone: 'America/La_Paz', weekday: 'long', day: '2-digit', month: 'short' });
@@ -352,13 +353,13 @@
         updateBoliviaClock();
         setInterval(updateBoliviaClock, 1000);
 
-        // Toggle apertura/cierre de dropdowns
+        // Toggle dropdowns
         const toggleDropdown = (panel, chevron, forceClose = false) => {
             const isOpen = !panel.classList.contains('hidden');
             if (forceClose || isOpen) { panel.classList.add('hidden'); chevron.style.transform = 'rotate(0deg)'; }
             else { panel.classList.remove('hidden'); chevron.style.transform = 'rotate(180deg)'; }
         };
-        // Panel deslizable de "Ranking Proveedores" en móvil
+        
         function toggleMobileSidebar(open) {
             els.side.classList.toggle('translate-x-0', open);
             els.side.classList.toggle('-translate-x-full', !open);
@@ -371,12 +372,13 @@
 
         els.ddMonthBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(els.ddProvPanel, els.ddProvChev, true); toggleDropdown(els.ddMonthPanel, els.ddMonthChev); });
         els.ddProvBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(els.ddMonthPanel, els.ddMonthChev, true); toggleDropdown(els.ddProvPanel, els.ddProvChev); });
+        
         document.addEventListener('click', (e) => {
             if (!els.ddMonthPanel.contains(e.target) && !els.ddMonthBtn.contains(e.target)) toggleDropdown(els.ddMonthPanel, els.ddMonthChev, true);
             if (!els.ddProvPanel.contains(e.target) && !els.ddProvBtn.contains(e.target)) toggleDropdown(els.ddProvPanel, els.ddProvChev, true);
         });
 
-        // Botones "Todos" / "Ninguno" dentro de cada dropdown
+        // Botones "Todos" / "Ninguno"
         document.querySelectorAll('.dd-select-all').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const container = btn.dataset.target === 'month' ? els.ddMonthOpts : els.ddProvOpts;
@@ -391,6 +393,7 @@
             btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel();
             updateDashboard();
         }));
+
         async function loadFromUrl(url, silent = false) {
             if(!url) return showToast("Enlace inválido", "error");
             if (!silent) els.load.classList.replace('hidden', 'flex');
@@ -398,14 +401,12 @@
                 let fUrl = url;
                 if (url.includes('github.com') && url.includes('/blob/')) fUrl = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
                 if (url.includes('drive.google.com/file/d/')) { const m = url.match(/\/d\/(.+?)\//); if (m) fUrl = `https://drive.google.com/uc?export=download&id=${m[1]}`; }
-                // Cache-buster: evita que Google/GitHub sirvan una copia vieja en caché
                 fUrl += (fUrl.includes('?') ? '&' : '?') + `t=${Date.now()}`;
                 const res = await fetch(fUrl, { cache: 'no-store' }); if (!res.ok) throw new Error("Acceso denegado o enlace no público.");
                 processWorkbook(await res.arrayBuffer(), silent);
             } catch(e) { console.error(e); if (!silent) showToast(e.message, "error"); els.load.classList.replace('flex', 'hidden'); }
         }
 
-        // Dispara la auto-carga al abrir la página, y refresca sola cada X minutos
         function initAutoLoad() {
             if (!AUTO_LOAD_URL || AUTO_LOAD_URL.includes('PEGA_AQUI_TU_ID')) return;
             els.loadMsg.textContent = "Sincronizando datos publicados...";
@@ -415,7 +416,6 @@
             }
         }
         initAutoLoad();
-
 
         async function handleFile(file) {
             if (!file) return; els.load.classList.replace('hidden', 'flex'); els.loadMsg.textContent = "Procesando archivo local...";
@@ -451,10 +451,13 @@
         }
 
         function populateFilters(preserveSelection = false) {
-            // Si ya había filtros aplicados, los guardamos para restaurarlos después de refrescar
             const prevM = preserveSelection ? getCheckedValues(els.ddMonthOpts) : null;
             const prevP = preserveSelection ? getCheckedValues(els.ddProvOpts) : null;
             const hadFiltersBefore = preserveSelection && (els.ddMonthOpts.children.length > 0);
+
+            // Limpiar los cuadros de búsqueda al recargar datos
+            els.searchMonth.value = '';
+            els.searchProv.value = '';
 
             const m = new Set(), p = new Set();
             rawData.costoLogistico.forEach(r => { 
@@ -465,7 +468,6 @@
             const sM = Array.from(m).sort((a,b) => MONTHS_ORDER.indexOf(a) - MONTHS_ORDER.indexOf(b));
             const sP = Array.from(p).sort();
 
-            // Genera checkboxes, todos marcados por defecto (equivale a "todos seleccionados")
             const optRow = (val, label) => `
                 <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer text-[11px] text-slate-700 font-medium select-none">
                     <input type="checkbox" value="${val}" checked class="dd-checkbox w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 focus:ring-offset-0 shrink-0">
@@ -475,7 +477,6 @@
             els.ddMonthOpts.innerHTML = sM.map(x => optRow(x, x.charAt(0).toUpperCase() + x.slice(1))).join('');
             els.ddProvOpts.innerHTML = sP.map(x => optRow(x, x)).join('');
 
-            // Restaura lo que tenías marcado antes del refresco (si aplica y el valor sigue existiendo)
             if (hadFiltersBefore) {
                 els.ddMonthOpts.querySelectorAll('.dd-checkbox').forEach(c => { c.checked = prevM.includes(c.value); });
                 els.ddProvOpts.querySelectorAll('.dd-checkbox').forEach(c => { c.checked = prevP.includes(c.value); });
@@ -513,21 +514,19 @@
             const selM = getCheckedValues(els.ddMonthOpts);
             const selP = getCheckedValues(els.ddProvOpts);
 
-            // Filtro Principal de datos
             const data = rawData.costoLogistico.filter(r => {
                 const mes = String(getCol(r, 'mes') || '').toLowerCase().trim();
                 const prov = String(getCol(r, 'proveedor') || '').trim();
                 return selM.includes(mes) && selP.includes(prov);
             });
             
-            // Cálculos Tarjetas
             const cMes = data.reduce((s, r) => s + (parseFloat(getCol(r, 'costo log. a cobrar'))||0), 0);
                              
             let fact = 0, pend = 0, cobrTotal = 0; 
             data.forEach(r => {
                 const val = parseFloat(getCol(r, 'costo log. a cobrar'))||0;
                 normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val;
-                if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val; // Para el gráfico de Anillo
+                if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val;
             });
             
             const deud = rawData.deudores.filter(r => {
@@ -537,14 +536,12 @@
                              
             const pctA = cMes > 0 ? (fact/cMes)*100 : 0;
 
-            // DOM Update Tarjetas
             els.cClMes.textContent = formatCurrency(cMes);
             els.cClFact.textContent = formatCurrency(fact); 
             els.cClPend.textContent = formatCurrency(pend);
             els.cClAcum.textContent = formatCurrency(pend + deud);
             els.cAvM.textContent = pctA.toFixed(1) + '%'; els.bAvM.style.width = Math.min(pctA,100)+'%';
 
-            // Cálculos para Gráfico Anillo (Proyección Total Anual)
             const pAnualTotal = rawData.proyeccion.reduce((s, r) => s + (parseFloat(getCol(r, 'py costo log. monto'))||0), 0);
             
             updateList(data); 
@@ -613,7 +610,6 @@
         }
 
         function updateMainChart(data, selectedMonths) {
-            // Eje X: todos los meses con Proyección cargada (año completo, hasta diciembre)
             const monthsWithProjection = new Set();
             rawData.proyeccion.forEach(r => {
                 const mes = String(getCol(r, 'mes') || '').toLowerCase().trim();
@@ -627,7 +623,6 @@
                 return r ? parseFloat(getCol(r, 'py costo log. monto'))||0 : 0;
             });
 
-            // Real: solo se dibuja en los meses filtrados; el resto queda como hueco (null) en la línea
             const rData = fullMonths.map(m => {
                 if (!selSet.has(m)) return null;
                 return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+(parseFloat(getCol(x, 'costo log. a cobrar'))||0),0);
@@ -685,7 +680,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '75%', // Grosor del anillo
+                    cutout: '75%',
                     plugins: {
                         legend: { display: false },
                         tooltip: {
