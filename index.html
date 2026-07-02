@@ -24,9 +24,17 @@
                 extend: {
                     fontFamily: { sans: ['Roboto', 'sans-serif'] },
                     colors: {
+                        // Paleta morada vibrante basada en la imagen
                         brand: {
-                            50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e',
-                            600: '#16a34a', 700: '#15803d', 900: '#14532d',
+                            50: '#faf5ff', 100: '#f3e8ff', 400: '#c084fc', 500: '#9D4EDD',
+                            600: '#7B2CBF', 700: '#5A189A', 900: '#240046',
+                        },
+                        dark: {
+                            bg: '#060B19',
+                            panel: '#0C1527',
+                            card: '#10182B',
+                            border: '#1E2A40',
+                            input: '#152036'
                         }
                     }
                 }
@@ -34,13 +42,12 @@
         }
     </script>
     <style>
-        /* Máscara de difuminado para el inicio y fin del contenedor */
+        /* Máscara de difuminado para el inicio y fin del contenedor adaptada a fondo oscuro */
         .mask-scroll {
             mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
         }
 
-        /* Animación para el Scroll Infinito en Bucle */
         @keyframes scrollUp {
             0% { transform: translateY(0); }
             100% { transform: translateY(-50%); } 
@@ -55,7 +62,6 @@
             animation-play-state: paused !important;
         }
 
-        /* Animación de desvanecimiento pulsante para las etiquetas de estado */
         @keyframes fadeStatus {
             0%, 100% { opacity: 0.3; transform: scale(0.96); }
             50% { opacity: 1; transform: scale(1); }
@@ -64,16 +70,13 @@
             animation: fadeStatus 2.5s ease-in-out infinite;
         }
 
-        /* Ocultar barra de scroll genérica pero hacerla un poco más ancha para usabilidad */
+        /* Scrollbar oscura y elegante */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* Estilos personalizados para los Select Multiple */
-        select[multiple] {
-            scrollbar-width: thin;
-        }
+        select[multiple] { scrollbar-width: thin; }
         select[multiple] option {
             padding: 6px 8px;
             border-radius: 4px;
@@ -81,64 +84,64 @@
             transition: all 0.2s;
         }
         select[multiple] option:checked {
-            background-color: #e2e8f0; 
-            color: #0f172a;
+            background-color: #1E2A40; 
+            color: #ffffff;
             font-weight: bold;
         }
         
-        /* Efecto de sombra difuminada para resaltar (glow) */
+        /* Glow sutil para tema oscuro */
         .card-glow {
-            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.12);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         .card-glow:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 45px -10px rgba(0,0,0,0.18);
+            box-shadow: 0 15px 45px -10px rgba(157, 78, 221, 0.15);
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
+<body class="bg-gradient-to-br from-dark-bg to-[#0A1128] text-gray-200 min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
 
     <div id="toast-container" class="fixed top-2 right-4 z-50 flex flex-col gap-2"></div>
 
-    <div id="loading-overlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
+    <div id="loading-overlay" class="fixed inset-0 bg-dark-bg/95 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
         <div class="relative w-14 h-14 flex items-center justify-center mb-3">
-            <div class="absolute inset-0 border-4 border-slate-100 border-t-brand-600 rounded-full animate-spin"></div>
-            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-brand-600"></i>
+            <div class="absolute inset-0 border-4 border-dark-border border-t-brand-500 rounded-full animate-spin"></div>
+            <i data-lucide="file-spreadsheet" class="w-5 h-5 text-brand-500"></i>
         </div>
-        <h3 class="text-lg font-black text-slate-800" id="load-msg">Procesando información...</h3>
+        <h3 class="text-lg font-black text-white" id="load-msg">Procesando información...</h3>
     </div>
 
-    <header class="bg-white border-b border-slate-200 shrink-0 z-40 relative shadow-sm h-14">
+    <header class="bg-dark-panel/90 backdrop-blur-md border-b border-dark-border shrink-0 z-40 relative shadow-md h-14">
         <div class="px-3 sm:px-4 h-full flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <button id="btn-toggle-sidebar" class="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-slate-100 text-slate-600 shrink-0" aria-label="Ranking de proveedores"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
-                <img src="logo chavez 2.png" alt="Logo Chávez" class="h-7 sm:h-8 object-contain shrink-0">
-                <div class="h-6 w-px bg-slate-300 mx-1 hidden sm:block"></div> 
-                <h1 class="text-sm sm:text-base font-black text-slate-900 tracking-tight leading-none mt-0.5 truncate">Costo Logístico 2026</h1>
+                <button id="btn-toggle-sidebar" class="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-dark-border text-gray-400 shrink-0" aria-label="Ranking de proveedores"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
+                <img src="logo chavez 2.png" alt="Logo Chávez" class="h-7 sm:h-8 object-contain shrink-0 drop-shadow-md">
+                <div class="h-6 w-px bg-dark-border mx-1 hidden sm:block"></div> 
+                <h1 class="text-sm sm:text-base font-black text-white tracking-tight leading-none mt-0.5 truncate">Costo Logístico 2026</h1>
             </div>
             
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <div id="last-updated" class="text-[10px] text-slate-500 hidden sm:block bg-slate-50 px-2 py-1 rounded-full border border-slate-200">Esperando datos</div>
-                <div id="bolivia-clock" class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm">
-                    <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600 shrink-0"></i>
+                <div id="last-updated" class="text-[10px] text-gray-400 hidden sm:block bg-dark-card px-2 py-1 rounded-full border border-dark-border">Esperando datos</div>
+                <div id="bolivia-clock" class="flex items-center gap-1.5 bg-dark-card border border-dark-border text-gray-300 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-400 shrink-0"></i>
                     <span id="clock-text">Cargando hora...</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-slate-900/50 z-30 lg:hidden"></div>
+    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/70 z-30 lg:hidden backdrop-blur-sm"></div>
 
     <div class="flex-1 flex overflow-visible lg:overflow-hidden relative">
         
-        <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-white border-r border-slate-200 flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_24px_rgba(0,0,0,0.02)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
-            <div class="p-4 border-b border-slate-100 shrink-0 bg-slate-50/50 flex items-center justify-between">
+        <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-dark-panel border-r border-dark-border flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_30px_rgba(0,0,0,0.5)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
+            <div class="p-4 border-b border-dark-border shrink-0 bg-dark-card/50 flex items-center justify-between">
                 <div>
-                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-600"></i>Ranking Proveedores</h3>
-                    <p class="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wide font-medium">Flujo Continuo</p>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-400"></i>Ranking Proveedores</h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide font-medium">Flujo Continuo</p>
                 </div>
-                <button id="btn-close-sidebar" class="lg:hidden text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button id="btn-close-sidebar" class="lg:hidden text-gray-500 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
             <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
@@ -146,36 +149,36 @@
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col relative bg-slate-50 overflow-visible lg:overflow-hidden p-3 lg:p-4 gap-4">
+        <main class="flex-1 flex flex-col relative overflow-visible lg:overflow-hidden p-3 lg:p-4 gap-4">
             
-            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-slate-50/90 backdrop-blur-sm z-20">
-                <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 max-w-sm w-full">
-                    <img src="logo chavez 2.png" alt="Logo" class="h-12 mx-auto mb-4 opacity-80">
-                    <h2 class="text-lg font-black text-slate-800 mb-1">Área de trabajo vacía</h2>
-                    <p class="text-slate-500 text-xs mb-4">Sincronizando datos automáticamente. Si tarda, puedes cargar el archivo manualmente.</p>
-                    <label for="excel-upload-main" class="cursor-pointer w-full flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-md"><i data-lucide="upload" class="w-4 h-4"></i> Cargar Archivo<input type="file" id="excel-upload-main" accept=".xlsx, .xls, .csv" class="hidden"></label>
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-dark-bg/80 backdrop-blur-md z-20">
+                <div class="bg-dark-panel p-6 rounded-2xl shadow-2xl border border-dark-border max-w-sm w-full">
+                    <img src="logo chavez 2.png" alt="Logo" class="h-12 mx-auto mb-4 opacity-90 drop-shadow-md">
+                    <h2 class="text-lg font-black text-white mb-1">Área de trabajo vacía</h2>
+                    <p class="text-gray-400 text-xs mb-4">Sincronizando datos automáticamente. Si tarda, puedes cargar el archivo manualmente.</p>
+                    <label for="excel-upload-main" class="cursor-pointer w-full flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(157,78,221,0.4)] transition-colors"><i data-lucide="upload" class="w-4 h-4"></i> Cargar Archivo<input type="file" id="excel-upload-main" accept=".xlsx, .xls, .csv" class="hidden"></label>
                 </div>
             </div>
 
             <div id="dashboard-content" class="hidden flex-col gap-4 lg:h-full">
                 
-                <section class="flex-none bg-white p-3 rounded-xl card-glow border border-slate-100 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-start relative z-30">
+                <section class="flex-none bg-dark-panel p-3 rounded-xl card-glow border border-dark-border flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-start relative z-30">
 
                     <div class="flex-1 relative" id="dd-month">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="calendar-days" class="w-3 h-3"></i> Meses</label>
-                        <button type="button" id="btn-dd-month" class="w-full bg-slate-50 border border-slate-200 hover:border-brand-400 text-slate-800 text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="calendar-days" class="w-3 h-3 text-brand-400"></i> Meses</label>
+                        <button type="button" id="btn-dd-month" class="w-full bg-dark-input border border-dark-border hover:border-brand-500 text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
                             <span id="lbl-dd-month" class="truncate font-bold">Todos los meses</span>
-                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200" id="chev-dd-month"></i>
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-200" id="chev-dd-month"></i>
                         </button>
-                        <div id="panel-dd-month" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden">
-                            <div class="flex items-center justify-between gap-2 p-2 border-b border-slate-100 bg-slate-50/70">
-                                <button type="button" class="dd-select-all text-[10px] font-bold text-brand-600 hover:text-brand-700 px-1.5 py-1 rounded hover:bg-brand-50" data-target="month">Todos</button>
-                                <button type="button" class="dd-clear-all text-[10px] font-bold text-slate-400 hover:text-slate-600 px-1.5 py-1 rounded hover:bg-slate-100" data-target="month">Ninguno</button>
+                        <div id="panel-dd-month" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-dark-panel border border-dark-border rounded-lg shadow-2xl overflow-hidden">
+                            <div class="flex items-center justify-between gap-2 p-2 border-b border-dark-border bg-dark-card/80">
+                                <button type="button" class="dd-select-all text-[10px] font-bold text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded hover:bg-dark-border" data-target="month">Todos</button>
+                                <button type="button" class="dd-clear-all text-[10px] font-bold text-gray-400 hover:text-gray-200 px-1.5 py-1 rounded hover:bg-dark-border" data-target="month">Ninguno</button>
                             </div>
-                            <div class="p-2 border-b border-slate-100 bg-white">
+                            <div class="p-2 border-b border-dark-border bg-dark-panel">
                                 <div class="relative">
-                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" id="search-month" placeholder="Buscar mes..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded outline-none focus:border-brand-400 focus:bg-white transition-colors">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                    <input type="text" id="search-month" placeholder="Buscar mes..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
                                 </div>
                             </div>
                             <div id="opts-dd-month" class="max-h-48 overflow-y-auto p-1.5"></div>
@@ -183,20 +186,20 @@
                     </div>
 
                     <div class="flex-1 relative" id="dd-provider">
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i> Proveedores</label>
-                        <button type="button" id="btn-dd-provider" class="w-full bg-slate-50 border border-slate-200 hover:border-brand-400 text-slate-800 text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3 text-brand-400"></i> Proveedores</label>
+                        <button type="button" id="btn-dd-provider" class="w-full bg-dark-input border border-dark-border hover:border-brand-500 text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
                             <span id="lbl-dd-provider" class="truncate font-bold">Todos los proveedores</span>
-                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200" id="chev-dd-provider"></i>
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-200" id="chev-dd-provider"></i>
                         </button>
-                        <div id="panel-dd-provider" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden">
-                            <div class="flex items-center justify-between gap-2 p-2 border-b border-slate-100 bg-slate-50/70">
-                                <button type="button" class="dd-select-all text-[10px] font-bold text-brand-600 hover:text-brand-700 px-1.5 py-1 rounded hover:bg-brand-50" data-target="provider">Todos</button>
-                                <button type="button" class="dd-clear-all text-[10px] font-bold text-slate-400 hover:text-slate-600 px-1.5 py-1 rounded hover:bg-slate-100" data-target="provider">Ninguno</button>
+                        <div id="panel-dd-provider" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-dark-panel border border-dark-border rounded-lg shadow-2xl overflow-hidden">
+                            <div class="flex items-center justify-between gap-2 p-2 border-b border-dark-border bg-dark-card/80">
+                                <button type="button" class="dd-select-all text-[10px] font-bold text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded hover:bg-dark-border" data-target="provider">Todos</button>
+                                <button type="button" class="dd-clear-all text-[10px] font-bold text-gray-400 hover:text-gray-200 px-1.5 py-1 rounded hover:bg-dark-border" data-target="provider">Ninguno</button>
                             </div>
-                            <div class="p-2 border-b border-slate-100 bg-white">
+                            <div class="p-2 border-b border-dark-border bg-dark-panel">
                                 <div class="relative">
-                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" id="search-provider" placeholder="Buscar proveedor..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded outline-none focus:border-brand-400 focus:bg-white transition-colors">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                    <input type="text" id="search-provider" placeholder="Buscar proveedor..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
                                 </div>
                             </div>
                             <div id="opts-dd-provider" class="max-h-48 overflow-y-auto p-1.5"></div>
@@ -208,34 +211,34 @@
                 <section class="flex-none">
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                         
-                        <div class="bg-white p-3.5 rounded-xl border border-slate-100 border-l-4 border-l-blue-500 card-glow relative z-10">
-                            <h3 class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">CL Selección Actual</h3>
-                            <p id="card-cl-mes-actual" class="text-lg lg:text-xl font-black text-slate-800 truncate">Bs 0</p>
+                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#00B4D8] card-glow relative z-10">
+                            <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CL Selección Actual</h3>
+                            <p id="card-cl-mes-actual" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
                         </div>
                         
-                        <div class="bg-white p-3.5 rounded-xl border border-slate-100 border-l-4 border-l-brand-500 card-glow relative z-10">
-                            <h3 class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">CL Facturado</h3>
-                            <p id="card-cl-facturado" class="text-lg lg:text-xl font-black text-slate-800 truncate">Bs 0</p>
+                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#9D4EDD] card-glow relative z-10">
+                            <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CL Facturado</h3>
+                            <p id="card-cl-facturado" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
                         </div>
                         
-                        <div class="bg-white p-3.5 rounded-xl border border-slate-100 border-l-4 border-l-orange-400 card-glow relative z-10">
-                            <h3 class="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Pendiente Facturar</h3>
-                            <p id="card-cl-pendiente" class="text-lg lg:text-xl font-black text-slate-800 truncate">Bs 0</p>
+                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#00E5FF] card-glow relative z-10">
+                            <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Pendiente Facturar</h3>
+                            <p id="card-cl-pendiente" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
                         </div>
                         
-                        <div class="bg-white p-3.5 rounded-xl border border-slate-100 border-l-4 border-l-red-500 card-glow relative z-10 flex justify-between items-center">
+                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#F72585] card-glow relative z-10 flex justify-between items-center">
                             <div>
-                                <h3 class="text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wide">Pendiente Acumulado</h3>
-                                <p id="card-cl-acumulado" class="text-lg lg:text-xl font-black text-red-600 truncate">Bs 0</p>
+                                <h3 class="text-[10px] font-bold text-gray-400 mb-0.5 uppercase tracking-wide">Pendiente Acumulado</h3>
+                                <p id="card-cl-acumulado" class="text-lg lg:text-xl font-black text-[#F72585] truncate">Bs 0</p>
                             </div>
                         </div>
 
-                        <div class="bg-white p-3.5 rounded-xl border border-slate-100 border-l-4 border-l-slate-400 card-glow relative z-10">
+                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#4361EE] card-glow relative z-10">
                             <div class="flex justify-between items-end mb-1">
-                                <h3 class="text-[10px] font-bold text-slate-500 leading-tight uppercase">Avance<br>Mensual</h3>
-                                <p id="card-avance-mensual" class="text-base lg:text-lg font-black text-slate-800 leading-none">0%</p>
+                                <h3 class="text-[10px] font-bold text-gray-400 leading-tight uppercase">Avance<br>Mensual</h3>
+                                <p id="card-avance-mensual" class="text-base lg:text-lg font-black text-white leading-none">0%</p>
                             </div>
-                            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1"><div id="bar-avance" class="bg-blue-500 h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div></div>
+                            <div class="w-full bg-dark-border rounded-full h-1.5 mt-1"><div id="bar-avance" class="bg-[#4361EE] shadow-[0_0_8px_#4361EE] h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div></div>
                         </div>
 
                     </div>
@@ -243,26 +246,26 @@
 
                 <section class="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
                     
-                    <div class="flex-[5] bg-white p-4 rounded-xl card-glow border border-slate-100 flex flex-col relative min-h-0 z-0">
+                    <div class="flex-[5] bg-dark-panel p-4 rounded-xl card-glow border border-dark-border flex flex-col relative min-h-0 z-0">
                         <div class="flex-none mb-2">
-                            <h3 class="text-sm font-black text-slate-800">Tendencia: Proyección vs Realidad</h3>
+                            <h3 class="text-sm font-black text-white">Tendencia: Proyección vs Realidad</h3>
                         </div>
                         <div class="flex-1 relative w-full h-[280px] lg:h-full min-h-0">
                             <canvas id="mainChart"></canvas>
                         </div>
                     </div>
 
-                    <div class="flex-[2] bg-white p-4 rounded-xl card-glow border border-slate-100 flex flex-col relative min-h-0 z-0">
+                    <div class="flex-[2] bg-dark-panel p-4 rounded-xl card-glow border border-dark-border flex flex-col relative min-h-0 z-0">
                         <div class="flex-none mb-2 text-center">
-                            <h3 class="text-sm font-black text-slate-800">Progreso Anual</h3>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase">Cobrado vs Proyección Total</p>
+                            <h3 class="text-sm font-black text-white">Progreso Anual</h3>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">Cobrado vs Proyección Total</p>
                         </div>
                         <div class="flex-1 relative w-full flex items-center justify-center min-h-0 pt-2">
                             <div class="relative w-full h-[220px] lg:h-full lg:max-h-[220px] flex items-center justify-center">
                                 <canvas id="donutChart"></canvas>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-                                    <span id="donut-pct" class="text-3xl font-black text-slate-800 leading-none">0%</span>
-                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cobrado</span>
+                                    <span id="donut-pct" class="text-3xl font-black text-white leading-none drop-shadow-[0_0_8px_rgba(157,78,221,0.5)]">0%</span>
+                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Cobrado</span>
                                 </div>
                             </div>
                         </div>
@@ -278,35 +281,23 @@
         lucide.createIcons();
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
+        Chart.defaults.color = '#94a3b8'; // Color global del texto de charts
 
-        // ============================================================
-        // AUTO-CARGA DESDE GOOGLE DRIVE
-        // ============================================================
         const AUTO_LOAD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDRPZbdY3KuYnHMtdusBham7oUa07KROIZkSb-IKDhgCE7TM2YhgSlIDUQ_9u79Q/pub?output=xlsx";
         const AUTO_REFRESH_MINUTES = 5;
 
-        // Estado Global
         let rawData = { proyeccion: [], costoLogistico: [], proveedores: [], deudores: [] };
         let chartInstance = null;
         let donutInstance = null; 
         const MONTHS_ORDER = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
-        // Elementos DOM
         const els = {
-            fInpMain: document.getElementById('excel-upload-main'),
-            clockText: document.getElementById('clock-text'),
-            empty: document.getElementById('empty-state'), dash: document.getElementById('dashboard-content'), side: document.getElementById('sidebar-providers'),
-            sideBackdrop: document.getElementById('sidebar-backdrop'), btnToggleSide: document.getElementById('btn-toggle-sidebar'), btnCloseSide: document.getElementById('btn-close-sidebar'),
-            load: document.getElementById('loading-overlay'), lastUp: document.getElementById('last-updated'), loadMsg: document.getElementById('load-msg'),
+            fInpMain: document.getElementById('excel-upload-main'), clockText: document.getElementById('clock-text'), empty: document.getElementById('empty-state'), dash: document.getElementById('dashboard-content'), side: document.getElementById('sidebar-providers'),
+            sideBackdrop: document.getElementById('sidebar-backdrop'), btnToggleSide: document.getElementById('btn-toggle-sidebar'), btnCloseSide: document.getElementById('btn-close-sidebar'), load: document.getElementById('loading-overlay'), lastUp: document.getElementById('last-updated'), loadMsg: document.getElementById('load-msg'),
             ddMonthBtn: document.getElementById('btn-dd-month'), ddMonthPanel: document.getElementById('panel-dd-month'), ddMonthOpts: document.getElementById('opts-dd-month'), ddMonthLbl: document.getElementById('lbl-dd-month'), ddMonthChev: document.getElementById('chev-dd-month'),
             ddProvBtn: document.getElementById('btn-dd-provider'), ddProvPanel: document.getElementById('panel-dd-provider'), ddProvOpts: document.getElementById('opts-dd-provider'), ddProvLbl: document.getElementById('lbl-dd-provider'), ddProvChev: document.getElementById('chev-dd-provider'),
-            cClMes: document.getElementById('card-cl-mes-actual'),
-            cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
-            cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'),
-            donutPct: document.getElementById('donut-pct'),
-            // Nuevos elementos de búsqueda
-            searchMonth: document.getElementById('search-month'),
-            searchProv: document.getElementById('search-provider')
+            cClMes: document.getElementById('card-cl-mes-actual'), cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
+            cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
         const formatCurrency = (v) => new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB', maximumFractionDigits: 0 }).format(v || 0).replace('BOB', 'Bs ');
@@ -321,16 +312,14 @@
         const showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const el = document.createElement('div');
-            el.className = `flex items-center gap-2 px-3 py-2 rounded shadow-md text-xs font-bold transition-all ${type === 'error' ? 'bg-red-500 text-white' : 'bg-brand-600 text-white'}`;
+            el.className = `flex items-center gap-2 px-3 py-2 rounded shadow-lg text-xs font-bold transition-all ${type === 'error' ? 'bg-[#F72585] text-white' : 'bg-brand-600 text-white'}`;
             el.innerHTML = `<i data-lucide="${type==='error'?'alert-triangle':'check-circle'}" class="w-4 h-4"></i>${msg}`;
             container.appendChild(el); lucide.createIcons();
             setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
         };
 
-        // Listeners
         els.fInpMain.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-        // Filtro de búsqueda para los dropdowns
         function filterOptions(term, container) {
             const search = normalizeStr(term);
             container.querySelectorAll('label').forEach(lbl => {
@@ -341,7 +330,6 @@
         els.searchMonth.addEventListener('input', (e) => filterOptions(e.target.value, els.ddMonthOpts));
         els.searchProv.addEventListener('input', (e) => filterOptions(e.target.value, els.ddProvOpts));
 
-        // Reloj
         function updateBoliviaClock() {
             const now = new Date();
             const dateFmt = new Intl.DateTimeFormat('es-BO', { timeZone: 'America/La_Paz', weekday: 'long', day: '2-digit', month: 'short' });
@@ -350,10 +338,8 @@
             dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
             if (els.clockText) els.clockText.textContent = `${dateStr} · ${timeFmt.format(now)}`;
         }
-        updateBoliviaClock();
-        setInterval(updateBoliviaClock, 1000);
+        updateBoliviaClock(); setInterval(updateBoliviaClock, 1000);
 
-        // Toggle dropdowns
         const toggleDropdown = (panel, chevron, forceClose = false) => {
             const isOpen = !panel.classList.contains('hidden');
             if (forceClose || isOpen) { panel.classList.add('hidden'); chevron.style.transform = 'rotate(0deg)'; }
@@ -361,9 +347,7 @@
         };
         
         function toggleMobileSidebar(open) {
-            els.side.classList.toggle('translate-x-0', open);
-            els.side.classList.toggle('-translate-x-full', !open);
-            els.sideBackdrop.classList.toggle('hidden', !open);
+            els.side.classList.toggle('translate-x-0', open); els.side.classList.toggle('-translate-x-full', !open); els.sideBackdrop.classList.toggle('hidden', !open);
         }
         els.btnToggleSide?.addEventListener('click', () => toggleMobileSidebar(!els.side.classList.contains('translate-x-0')));
         els.btnCloseSide?.addEventListener('click', () => toggleMobileSidebar(false));
@@ -378,20 +362,15 @@
             if (!els.ddProvPanel.contains(e.target) && !els.ddProvBtn.contains(e.target)) toggleDropdown(els.ddProvPanel, els.ddProvChev, true);
         });
 
-        // Botones "Todos" / "Ninguno"
         document.querySelectorAll('.dd-select-all').forEach(btn => btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const container = btn.dataset.target === 'month' ? els.ddMonthOpts : els.ddProvOpts;
+            e.stopPropagation(); const container = btn.dataset.target === 'month' ? els.ddMonthOpts : els.ddProvOpts;
             container.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = true);
-            btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel();
-            updateDashboard();
+            btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel(); updateDashboard();
         }));
         document.querySelectorAll('.dd-clear-all').forEach(btn => btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const container = btn.dataset.target === 'month' ? els.ddMonthOpts : els.ddProvOpts;
+            e.stopPropagation(); const container = btn.dataset.target === 'month' ? els.ddMonthOpts : els.ddProvOpts;
             container.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = false);
-            btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel();
-            updateDashboard();
+            btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel(); updateDashboard();
         }));
 
         async function loadFromUrl(url, silent = false) {
@@ -411,31 +390,19 @@
             if (!AUTO_LOAD_URL || AUTO_LOAD_URL.includes('PEGA_AQUI_TU_ID')) return;
             els.loadMsg.textContent = "Sincronizando datos publicados...";
             loadFromUrl(AUTO_LOAD_URL);
-            if (AUTO_REFRESH_MINUTES > 0) {
-                setInterval(() => loadFromUrl(AUTO_LOAD_URL, true), AUTO_REFRESH_MINUTES * 60 * 1000);
-            }
+            if (AUTO_REFRESH_MINUTES > 0) setInterval(() => loadFromUrl(AUTO_LOAD_URL, true), AUTO_REFRESH_MINUTES * 60 * 1000);
         }
         initAutoLoad();
 
         async function handleFile(file) {
             if (!file) return; els.load.classList.replace('hidden', 'flex'); els.loadMsg.textContent = "Procesando archivo local...";
-            try { processWorkbook(await file.arrayBuffer()); } 
-            catch(e) { console.error(e); showToast(e.message || "Error desconocido al procesar", "error"); els.load.classList.replace('flex', 'hidden'); } 
-            finally { els.fInpMain.value = ''; }
+            try { processWorkbook(await file.arrayBuffer()); } catch(e) { console.error(e); showToast(e.message || "Error desconocido al procesar", "error"); els.load.classList.replace('flex', 'hidden'); } finally { els.fInpMain.value = ''; }
         }
 
         function processWorkbook(buffer, silent = false) {
             const wb = XLSX.read(buffer);
-            const getS = (name) => { 
-                const search = normalizeStr(name);
-                const n = wb.SheetNames.find(x => normalizeStr(x).includes(search) || normalizeStr(x).replace(/_/g, ' ') === search); 
-                return n ? XLSX.utils.sheet_to_json(wb.Sheets[n], {defval:""}) : []; 
-            };
-            
-            rawData.proyeccion = getS('proyeccion'); 
-            rawData.costoLogistico = getS('costo logistico');
-            rawData.proveedores = getS('proveedor'); 
-            rawData.deudores = getS('deudor');
+            const getS = (name) => { const search = normalizeStr(name); const n = wb.SheetNames.find(x => normalizeStr(x).includes(search) || normalizeStr(x).replace(/_/g, ' ') === search); return n ? XLSX.utils.sheet_to_json(wb.Sheets[n], {defval:""}) : []; };
+            rawData.proyeccion = getS('proyeccion'); rawData.costoLogistico = getS('costo logistico'); rawData.proveedores = getS('proveedor'); rawData.deudores = getS('deudor');
             
             if (!wb.SheetNames.length) throw new Error("El archivo Excel no tiene hojas o está corrupto.");
             if (!rawData.costoLogistico.length) throw new Error(`Falta hoja "Costo Logístico".`);
@@ -444,10 +411,8 @@
             els.empty.classList.add('hidden'); els.dash.classList.replace('hidden', 'flex'); els.side.classList.replace('hidden', 'flex');
             els.lastUp.textContent = 'Última sync: ' + new Date().toLocaleTimeString();
             
-            populateFilters(silent); 
-            updateDashboard();
-            if (!silent) showToast("Datos cargados correctamente");
-            els.load.classList.replace('flex', 'hidden');
+            populateFilters(silent); updateDashboard();
+            if (!silent) showToast("Datos cargados correctamente"); els.load.classList.replace('flex', 'hidden');
         }
 
         function populateFilters(preserveSelection = false) {
@@ -455,22 +420,14 @@
             const prevP = preserveSelection ? getCheckedValues(els.ddProvOpts) : null;
             const hadFiltersBefore = preserveSelection && (els.ddMonthOpts.children.length > 0);
 
-            // Limpiar los cuadros de búsqueda al recargar datos
-            els.searchMonth.value = '';
-            els.searchProv.value = '';
-
+            els.searchMonth.value = ''; els.searchProv.value = '';
             const m = new Set(), p = new Set();
-            rawData.costoLogistico.forEach(r => { 
-                const mes = getCol(r, 'mes'); const prov = getCol(r, 'proveedor');
-                if(mes) m.add(String(mes).toLowerCase().trim()); 
-                if(prov) p.add(String(prov).trim()); 
-            });
-            const sM = Array.from(m).sort((a,b) => MONTHS_ORDER.indexOf(a) - MONTHS_ORDER.indexOf(b));
-            const sP = Array.from(p).sort();
+            rawData.costoLogistico.forEach(r => { const mes = getCol(r, 'mes'); const prov = getCol(r, 'proveedor'); if(mes) m.add(String(mes).toLowerCase().trim()); if(prov) p.add(String(prov).trim()); });
+            const sM = Array.from(m).sort((a,b) => MONTHS_ORDER.indexOf(a) - MONTHS_ORDER.indexOf(b)); const sP = Array.from(p).sort();
 
             const optRow = (val, label) => `
-                <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer text-[11px] text-slate-700 font-medium select-none">
-                    <input type="checkbox" value="${val}" checked class="dd-checkbox w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 focus:ring-offset-0 shrink-0">
+                <label class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-dark-border cursor-pointer text-[11px] text-gray-300 font-medium select-none transition-colors">
+                    <input type="checkbox" value="${val}" checked class="dd-checkbox w-3.5 h-3.5 rounded border-dark-border bg-dark-bg text-brand-500 focus:ring-brand-500 focus:ring-offset-dark-panel shrink-0">
                     <span class="truncate">${label}</span>
                 </label>`;
 
@@ -484,17 +441,14 @@
 
             els.ddMonthOpts.querySelectorAll('.dd-checkbox').forEach(c => c.addEventListener('change', () => { updateMonthLabel(); updateDashboard(); }));
             els.ddProvOpts.querySelectorAll('.dd-checkbox').forEach(c => c.addEventListener('change', () => { updateProviderLabel(); updateDashboard(); }));
-
-            updateMonthLabel();
-            updateProviderLabel();
+            updateMonthLabel(); updateProviderLabel();
         }
 
         const getCheckedValues = (container) => Array.from(container.querySelectorAll('.dd-checkbox:checked')).map(c => c.value);
         const getAllValues = (container) => Array.from(container.querySelectorAll('.dd-checkbox')).map(c => c.value);
 
         function updateMonthLabel() {
-            const total = getAllValues(els.ddMonthOpts).length;
-            const sel = getCheckedValues(els.ddMonthOpts);
+            const total = getAllValues(els.ddMonthOpts).length; const sel = getCheckedValues(els.ddMonthOpts);
             if (sel.length === 0) els.ddMonthLbl.textContent = 'Ninguno seleccionado';
             else if (sel.length === total) els.ddMonthLbl.textContent = 'Todos los meses';
             else if (sel.length === 1) els.ddMonthLbl.textContent = sel[0].charAt(0).toUpperCase() + sel[0].slice(1);
@@ -502,8 +456,7 @@
         }
 
         function updateProviderLabel() {
-            const total = getAllValues(els.ddProvOpts).length;
-            const sel = getCheckedValues(els.ddProvOpts);
+            const total = getAllValues(els.ddProvOpts).length; const sel = getCheckedValues(els.ddProvOpts);
             if (sel.length === 0) els.ddProvLbl.textContent = 'Ninguno seleccionado';
             else if (sel.length === total) els.ddProvLbl.textContent = 'Todos los proveedores';
             else if (sel.length === 1) els.ddProvLbl.textContent = sel[0];
@@ -511,88 +464,61 @@
         }
 
         function updateDashboard() {
-            const selM = getCheckedValues(els.ddMonthOpts);
-            const selP = getCheckedValues(els.ddProvOpts);
-
-            const data = rawData.costoLogistico.filter(r => {
-                const mes = String(getCol(r, 'mes') || '').toLowerCase().trim();
-                const prov = String(getCol(r, 'proveedor') || '').trim();
-                return selM.includes(mes) && selP.includes(prov);
-            });
+            const selM = getCheckedValues(els.ddMonthOpts); const selP = getCheckedValues(els.ddProvOpts);
+            const data = rawData.costoLogistico.filter(r => { const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); const prov = String(getCol(r, 'proveedor') || '').trim(); return selM.includes(mes) && selP.includes(prov); });
             
             const cMes = data.reduce((s, r) => s + (parseFloat(getCol(r, 'costo log. a cobrar'))||0), 0);
-                             
             let fact = 0, pend = 0, cobrTotal = 0; 
-            data.forEach(r => {
-                const val = parseFloat(getCol(r, 'costo log. a cobrar'))||0;
-                normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val;
-                if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val;
-            });
+            data.forEach(r => { const val = parseFloat(getCol(r, 'costo log. a cobrar'))||0; normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val; if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val; });
             
-            const deud = rawData.deudores.filter(r => {
-                const prov = String(getCol(r, 'proveedor')||'').trim();
-                return selP.includes(prov);
-            }).reduce((s, r) => s + (parseFloat(getCol(r, 'monto'))||0), 0);
-                             
+            const deud = rawData.deudores.filter(r => { const prov = String(getCol(r, 'proveedor')||'').trim(); return selP.includes(prov); }).reduce((s, r) => s + (parseFloat(getCol(r, 'monto'))||0), 0);
             const pctA = cMes > 0 ? (fact/cMes)*100 : 0;
 
-            els.cClMes.textContent = formatCurrency(cMes);
-            els.cClFact.textContent = formatCurrency(fact); 
-            els.cClPend.textContent = formatCurrency(pend);
-            els.cClAcum.textContent = formatCurrency(pend + deud);
+            els.cClMes.textContent = formatCurrency(cMes); els.cClFact.textContent = formatCurrency(fact); els.cClPend.textContent = formatCurrency(pend); els.cClAcum.textContent = formatCurrency(pend + deud);
             els.cAvM.textContent = pctA.toFixed(1) + '%'; els.bAvM.style.width = Math.min(pctA,100)+'%';
 
             const pAnualTotal = rawData.proyeccion.reduce((s, r) => s + (parseFloat(getCol(r, 'py costo log. monto'))||0), 0);
-            
-            updateList(data); 
-            updateMainChart(data, selM);
-            updateDonutChart(cobrTotal, pAnualTotal);
+            updateList(data); updateMainChart(data, selM); updateDonutChart(cobrTotal, pAnualTotal);
         }
 
         function updateList(data) {
             const agg = {};
             data.forEach(r => {
-                const pv = getCol(r, 'proveedor') || 'Desconocido';
-                const val = parseFloat(getCol(r, 'costo log. a cobrar')) || 0;
-                const isPendiente = !normalizeYesNo(getCol(r, 'facturado')); 
-                
+                const pv = getCol(r, 'proveedor') || 'Desconocido'; const val = parseFloat(getCol(r, 'costo log. a cobrar')) || 0; const isPendiente = !normalizeYesNo(getCol(r, 'facturado')); 
                 if (!agg[pv]) agg[pv] = { total: 0, hasPendiente: false };
-                agg[pv].total += val;
-                if (isPendiente && val > 0) agg[pv].hasPendiente = true;
+                agg[pv].total += val; if (isPendiente && val > 0) agg[pv].hasPendiente = true;
             });
 
-            const arr = Object.entries(agg).map(([prov, d]) => ({prov, total: d.total, status: d.hasPendiente ? 'Pendiente' : 'Al día'}))
-                              .filter(i => i.total > 0).sort((a,b) => b.total - a.total);
+            const arr = Object.entries(agg).map(([prov, d]) => ({prov, total: d.total, status: d.hasPendiente ? 'Pendiente' : 'Al día'})).filter(i => i.total > 0).sort((a,b) => b.total - a.total);
 
             if(!arr.length) {
                 els.pTrack.style.animation = 'none';
-                els.pTrack.innerHTML = '<div class="text-center text-slate-400 text-xs mt-4 font-bold">Sin datos seleccionados</div>';
-                return;
+                els.pTrack.innerHTML = '<div class="text-center text-gray-500 text-xs mt-4 font-bold">Sin datos seleccionados</div>'; return;
             }
 
-            const max = arr[0].total;
-            let htmlStr = '';
+            const max = arr[0].total; let htmlStr = '';
             
             arr.forEach((item, i) => {
                 const isAlDia = item.status === 'Al día';
-                const badgeClass = isAlDia ? 'bg-brand-100 text-brand-700 border-brand-200' : 'bg-orange-100 text-orange-700 border-orange-200';
+                const badgeClass = isAlDia ? 'bg-brand-500/20 text-brand-300 border-brand-500/30' : 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/30';
+                const colorBarClass = isAlDia ? 'bg-brand-500 shadow-[0_0_8px_#9D4EDD]' : 'bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]';
                 
                 htmlStr += `
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 w-full shrink-0 relative overflow-hidden group">
-                        <div class="absolute left-0 top-0 bottom-0 w-1 ${isAlDia ? 'bg-brand-500' : 'bg-orange-400'}"></div>
+                    <div class="bg-dark-card p-3 rounded-xl shadow-sm border border-dark-border w-full shrink-0 relative overflow-hidden group hover:border-brand-500/50 transition-colors">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 ${colorBarClass.split(' ')[0]}"></div>
                         <div class="flex justify-between items-start mb-1.5 gap-2 pl-2">
-                            <span class="text-xs font-bold text-slate-700 leading-tight group-hover:text-brand-600 transition-colors">
-                                <span class="text-slate-400 font-normal mr-0.5">${i+1}.</span> ${item.prov}
+                            <span class="text-xs font-bold text-gray-200 leading-tight group-hover:text-white transition-colors">
+                                <span class="text-gray-500 font-normal mr-0.5">${i+1}.</span> ${item.prov}
                             </span>
                             <span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0 badge-animated ${badgeClass}">
                                 ${item.status}
                             </span>
                         </div>
                         <div class="flex justify-between items-center mt-2 pl-2">
-                            <div class="w-full bg-slate-100 rounded-full h-1.5 mr-3 relative overflow-hidden">
-                                <div class="absolute left-0 top-0 bottom-0 rounded-full transition-all duration-1000 ${isAlDia ? 'bg-brand-400' : 'bg-orange-300'}" style="width: ${(item.total/max)*100}%"></div>
+                            <div class="w-full bg-dark-border rounded-full h-1.5 mr-3 relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 rounded-full transition-all duration-1000 ${colorBarClass}" style="width: ${(item.total/max)*100}%"></div>
                             </div>
-                            <span class="text-xs font-black text-slate-900 shrink-0">${formatCurrency(item.total)}</span>
+                            <span class="text-xs font-black text-white shrink-0">${formatCurrency(item.total)}</span>
                         </div>
                     </div>
                 `;
@@ -600,33 +526,19 @@
 
             const repeatCount = arr.length < 5 ? 4 : 2; 
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
+            const speedPerItem = 2.5; const totalDuration = arr.length * repeatCount * speedPerItem;
             
-            const speedPerItem = 2.5; 
-            const totalDuration = arr.length * repeatCount * speedPerItem;
-            
-            els.pTrack.style.animation = 'none';
-            void els.pTrack.offsetWidth; 
+            els.pTrack.style.animation = 'none'; void els.pTrack.offsetWidth; 
             els.pTrack.style.animation = `scrollUp ${totalDuration / repeatCount}s linear infinite`;
         }
 
         function updateMainChart(data, selectedMonths) {
             const monthsWithProjection = new Set();
-            rawData.proyeccion.forEach(r => {
-                const mes = String(getCol(r, 'mes') || '').toLowerCase().trim();
-                if (mes) monthsWithProjection.add(mes);
-            });
-            const fullMonths = MONTHS_ORDER.filter(m => monthsWithProjection.has(m));
-            const selSet = new Set(selectedMonths);
+            rawData.proyeccion.forEach(r => { const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); if (mes) monthsWithProjection.add(mes); });
+            const fullMonths = MONTHS_ORDER.filter(m => monthsWithProjection.has(m)); const selSet = new Set(selectedMonths);
 
-            const pData = fullMonths.map(m => {
-                const r = rawData.proyeccion.find(x => String(getCol(x, 'mes')).toLowerCase().trim() === m);
-                return r ? parseFloat(getCol(r, 'py costo log. monto'))||0 : 0;
-            });
-
-            const rData = fullMonths.map(m => {
-                if (!selSet.has(m)) return null;
-                return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+(parseFloat(getCol(x, 'costo log. a cobrar'))||0),0);
-            });
+            const pData = fullMonths.map(m => { const r = rawData.proyeccion.find(x => String(getCol(x, 'mes')).toLowerCase().trim() === m); return r ? parseFloat(getCol(r, 'py costo log. monto'))||0 : 0; });
+            const rData = fullMonths.map(m => { if (!selSet.has(m)) return null; return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+(parseFloat(getCol(x, 'costo log. a cobrar'))||0),0); });
 
             if(chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
@@ -637,8 +549,8 @@
                 data: {
                     labels: fullMonths.map(m => m.charAt(0).toUpperCase() + m.slice(1)),
                     datasets: [
-                        { label: 'Proyección', data: pData, borderColor: '#94a3b8', borderWidth: 2, borderDash: [4,4], tension: 0.4, pointRadius:2 },
-                        { label: 'Real', data: rData, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, spanGaps: false }
+                        { label: 'Proyección', data: pData, borderColor: '#00B4D8', borderWidth: 2, borderDash: [4,4], tension: 0.4, pointRadius:2 },
+                        { label: 'Real', data: rData, borderColor: '#9D4EDD', backgroundColor: 'rgba(157, 78, 221, 0.15)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, spanGaps: false }
                     ]
                 },
                 options: {
@@ -646,11 +558,11 @@
                     interaction: { mode: 'index', intersect: false },
                     plugins: { 
                         legend: { display: true, position: 'top', align: 'end', labels:{boxWidth:8, usePointStyle:true, font:{size:11, weight:'bold'}} },
-                        tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', titleFont: { size: 13 }, padding: 10, cornerRadius: 8, callbacks: { label: c => ` Bs ${Intl.NumberFormat('es-BO').format(c.parsed.y)}` } }
+                        tooltip: { backgroundColor: 'rgba(15, 24, 43, 0.95)', titleFont: { size: 13 }, padding: 10, cornerRadius: 8, borderColor: '#1E2A40', borderWidth: 1, callbacks: { label: c => ` Bs ${Intl.NumberFormat('es-BO').format(c.parsed.y)}` } }
                     },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 11, weight: 'bold' } } },
-                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 }, maxTicksLimit: 6, callback: v => Intl.NumberFormat('es-BO',{notation:"compact"}).format(v) } }
+                        y: { beginAtZero: true, grid: { color: '#1E2A40' }, ticks: { font: { size: 11 }, maxTicksLimit: 6, callback: v => Intl.NumberFormat('es-BO',{notation:"compact"}).format(v) } }
                     }
                 }
             });
@@ -659,7 +571,6 @@
         function updateDonutChart(cobrado, totalEsperado) {
             const faltante = Math.max(0, totalEsperado - cobrado);
             const pct = totalEsperado > 0 ? (cobrado / totalEsperado) * 100 : 0;
-            
             els.donutPct.textContent = pct.toFixed(1) + '%';
 
             if(donutInstance) donutInstance.destroy();
@@ -671,42 +582,30 @@
                     labels: ['Cobrado (Selección)', 'Pendiente de Cobro Anual'],
                     datasets: [{
                         data: [cobrado, faltante],
-                        backgroundColor: ['#22c55e', '#f1f5f9'],
-                        hoverBackgroundColor: ['#16a34a', '#e2e8f0'],
+                        backgroundColor: ['#9D4EDD', '#1E2A40'],
+                        hoverBackgroundColor: ['#7B2CBF', '#2A3B5A'],
                         borderWidth: 0,
                         hoverOffset: 4
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
+                    responsive: true, maintainAspectRatio: false, cutout: '75%',
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            bodyFont: { size: 13, weight: 'bold' },
-                            padding: 10,
-                            callbacks: {
-                                label: function(c) {
-                                    return ` ${c.label}: Bs ${Intl.NumberFormat('es-BO').format(c.parsed)}`;
-                                }
-                            }
+                            backgroundColor: 'rgba(15, 24, 43, 0.95)', bodyFont: { size: 13, weight: 'bold' }, padding: 10, borderColor: '#1E2A40', borderWidth: 1,
+                            callbacks: { label: function(c) { return ` ${c.label}: Bs ${Intl.NumberFormat('es-BO').format(c.parsed)}`; } }
                         },
                         datalabels: {
                             display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
-                            color: (ctx) => ctx.dataIndex === 0 ? '#ffffff' : '#475569',
-                            backgroundColor: (ctx) => ctx.dataIndex === 0 ? 'rgba(71, 85, 105, 0.85)' : 'rgba(148, 163, 184, 0.35)',
-                            borderRadius: 6,
-                            padding: { top: 4, bottom: 4, left: 6, right: 6 },
-                            font: { size: 11, weight: 'bold' },
+                            color: (ctx) => ctx.dataIndex === 0 ? '#ffffff' : '#94a3b8',
+                            backgroundColor: (ctx) => ctx.dataIndex === 0 ? 'rgba(157, 78, 221, 0.85)' : 'rgba(30, 42, 64, 0.85)',
+                            borderRadius: 6, padding: { top: 4, bottom: 4, left: 6, right: 6 }, font: { size: 11, weight: 'bold' },
                             formatter: (value, ctx) => {
-                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                                const pct = total > 0 ? (value / total * 100) : 0;
-                                return [`${pct.toFixed(1)}%`, Intl.NumberFormat('es-BO', { notation: 'compact' }).format(value)];
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0); const p = total > 0 ? (value / total * 100) : 0;
+                                return [`${p.toFixed(1)}%`, Intl.NumberFormat('es-BO', { notation: 'compact' }).format(value)];
                             },
-                            align: 'center',
-                            anchor: 'center'
+                            align: 'center', anchor: 'center'
                         }
                     }
                 }
