@@ -281,8 +281,11 @@
         lucide.createIcons();
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
-        Chart.defaults.color = '#94a3b8'; // Color global del texto de charts
+        Chart.defaults.color = '#94a3b8';
 
+        // ============================================================
+        // CONFIGURACIÓN DE URL PÚBLICA (.xlsx)
+        // ============================================================
         const AUTO_LOAD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDRPZbdY3KuYnHMtdusBham7oUa07KROIZkSb-IKDhgCE7TM2YhgSlIDUQ_9u79Q/pub?output=xlsx";
         const AUTO_REFRESH_MINUTES = 5;
 
@@ -298,6 +301,19 @@
             ddProvBtn: document.getElementById('btn-dd-provider'), ddProvPanel: document.getElementById('panel-dd-provider'), ddProvOpts: document.getElementById('opts-dd-provider'), ddProvLbl: document.getElementById('lbl-dd-provider'), ddProvChev: document.getElementById('chev-dd-provider'),
             cClMes: document.getElementById('card-cl-mes-actual'), cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
+        };
+
+        // --- EXTRACTOR DE NÚMEROS A PRUEBA DE BALAS ---
+        const parseNum = (val) => {
+            if (val === null || val === undefined || val === '') return 0;
+            if (typeof val === 'number') return val;
+            let s = String(val).replace(/[^0-9\,\.\-]/g, ''); 
+            if (s.includes(',') && s.lastIndexOf(',') > s.lastIndexOf('.')) {
+                s = s.replace(/\./g, '').replace(',', '.');
+            } else {
+                s = s.replace(/\,/g, '');
+            }
+            return parseFloat(s) || 0;
         };
 
         const formatCurrency = (v) => new Intl.NumberFormat('es-BO', { style: 'currency', currency: 'BOB', maximumFractionDigits: 0 }).format(v || 0).replace('BOB', 'Bs ');
@@ -467,24 +483,24 @@
             const selM = getCheckedValues(els.ddMonthOpts); const selP = getCheckedValues(els.ddProvOpts);
             const data = rawData.costoLogistico.filter(r => { const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); const prov = String(getCol(r, 'proveedor') || '').trim(); return selM.includes(mes) && selP.includes(prov); });
             
-            const cMes = data.reduce((s, r) => s + (parseFloat(getCol(r, 'costo log. a cobrar'))||0), 0);
+            const cMes = data.reduce((s, r) => s + parseNum(getCol(r, 'costo log. a cobrar')), 0);
             let fact = 0, pend = 0, cobrTotal = 0; 
-            data.forEach(r => { const val = parseFloat(getCol(r, 'costo log. a cobrar'))||0; normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val; if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val; });
+            data.forEach(r => { const val = parseNum(getCol(r, 'costo log. a cobrar')); normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val; if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val; });
             
-            const deud = rawData.deudores.filter(r => { const prov = String(getCol(r, 'proveedor')||'').trim(); return selP.includes(prov); }).reduce((s, r) => s + (parseFloat(getCol(r, 'monto'))||0), 0);
+            const deud = rawData.deudores.filter(r => { const prov = String(getCol(r, 'proveedor')||'').trim(); return selP.includes(prov); }).reduce((s, r) => s + parseNum(getCol(r, 'monto')), 0);
             const pctA = cMes > 0 ? (fact/cMes)*100 : 0;
 
             els.cClMes.textContent = formatCurrency(cMes); els.cClFact.textContent = formatCurrency(fact); els.cClPend.textContent = formatCurrency(pend); els.cClAcum.textContent = formatCurrency(pend + deud);
             els.cAvM.textContent = pctA.toFixed(1) + '%'; els.bAvM.style.width = Math.min(pctA,100)+'%';
 
-            const pAnualTotal = rawData.proyeccion.reduce((s, r) => s + (parseFloat(getCol(r, 'py costo log. monto'))||0), 0);
+            const pAnualTotal = rawData.proyeccion.reduce((s, r) => s + parseNum(getCol(r, 'py costo log. monto')), 0);
             updateList(data); updateMainChart(data, selM); updateDonutChart(cobrTotal, pAnualTotal);
         }
 
         function updateList(data) {
             const agg = {};
             data.forEach(r => {
-                const pv = getCol(r, 'proveedor') || 'Desconocido'; const val = parseFloat(getCol(r, 'costo log. a cobrar')) || 0; const isPendiente = !normalizeYesNo(getCol(r, 'facturado')); 
+                const pv = getCol(r, 'proveedor') || 'Desconocido'; const val = parseNum(getCol(r, 'costo log. a cobrar')); const isPendiente = !normalizeYesNo(getCol(r, 'facturado')); 
                 if (!agg[pv]) agg[pv] = { total: 0, hasPendiente: false };
                 agg[pv].total += val; if (isPendiente && val > 0) agg[pv].hasPendiente = true;
             });
@@ -537,8 +553,8 @@
             rawData.proyeccion.forEach(r => { const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); if (mes) monthsWithProjection.add(mes); });
             const fullMonths = MONTHS_ORDER.filter(m => monthsWithProjection.has(m)); const selSet = new Set(selectedMonths);
 
-            const pData = fullMonths.map(m => { const r = rawData.proyeccion.find(x => String(getCol(x, 'mes')).toLowerCase().trim() === m); return r ? parseFloat(getCol(r, 'py costo log. monto'))||0 : 0; });
-            const rData = fullMonths.map(m => { if (!selSet.has(m)) return null; return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+(parseFloat(getCol(x, 'costo log. a cobrar'))||0),0); });
+            const pData = fullMonths.map(m => { const r = rawData.proyeccion.find(x => String(getCol(x, 'mes')).toLowerCase().trim() === m); return r ? parseNum(getCol(r, 'py costo log. monto')) : 0; });
+            const rData = fullMonths.map(m => { if (!selSet.has(m)) return null; return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+parseNum(getCol(x, 'costo log. a cobrar')),0); });
 
             if(chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
