@@ -15,8 +15,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- LIBRERÍA DE SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
         tailwind.config = {
@@ -24,7 +26,6 @@
                 extend: {
                     fontFamily: { sans: ['Roboto', 'sans-serif'] },
                     colors: {
-                        // Paleta morada vibrante basada en la imagen
                         brand: {
                             50: '#faf5ff', 100: '#f3e8ff', 400: '#c084fc', 500: '#9D4EDD',
                             600: '#7B2CBF', 700: '#5A189A', 900: '#240046',
@@ -42,7 +43,6 @@
         }
     </script>
     <style>
-        /* Máscara de difuminado para el inicio y fin del contenedor adaptada a fondo oscuro */
         .mask-scroll {
             mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
@@ -53,24 +53,15 @@
             100% { transform: translateY(-50%); } 
         }
 
-        .track-scroller {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .track-scroller:hover {
-            animation-play-state: paused !important;
-        }
+        .track-scroller { display: flex; flex-direction: column; }
+        .track-scroller:hover { animation-play-state: paused !important; }
 
         @keyframes fadeStatus {
             0%, 100% { opacity: 0.3; transform: scale(0.96); }
             50% { opacity: 1; transform: scale(1); }
         }
-        .badge-animated {
-            animation: fadeStatus 2.5s ease-in-out infinite;
-        }
+        .badge-animated { animation: fadeStatus 2.5s ease-in-out infinite; }
 
-        /* Scrollbar oscura y elegante */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; }
@@ -78,18 +69,12 @@
 
         select[multiple] { scrollbar-width: thin; }
         select[multiple] option {
-            padding: 6px 8px;
-            border-radius: 4px;
-            margin-bottom: 2px;
-            transition: all 0.2s;
+            padding: 6px 8px; border-radius: 4px; margin-bottom: 2px; transition: all 0.2s;
         }
         select[multiple] option:checked {
-            background-color: #1E2A40; 
-            color: #ffffff;
-            font-weight: bold;
+            background-color: #1E2A40; color: #ffffff; font-weight: bold;
         }
         
-        /* Glow sutil para tema oscuro */
         .card-glow {
             box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -102,7 +87,8 @@
 </head>
 <body class="bg-gradient-to-br from-dark-bg to-[#0A1128] text-gray-200 min-h-screen lg:h-screen w-screen overflow-y-auto lg:overflow-hidden flex flex-col font-sans">
 
-    <div id="toast-container" class="fixed top-2 right-4 z-50 flex flex-col gap-2"></div>
+    <!-- Notificaciones y Loading global -->
+    <div id="toast-container" class="fixed top-2 right-4 z-[60] flex flex-col gap-2"></div>
 
     <div id="loading-overlay" class="fixed inset-0 bg-dark-bg/95 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
         <div class="relative w-14 h-14 flex items-center justify-center mb-3">
@@ -112,180 +98,316 @@
         <h3 class="text-lg font-black text-white" id="load-msg">Procesando información...</h3>
     </div>
 
-    <header class="bg-dark-panel/90 backdrop-blur-md border-b border-dark-border shrink-0 z-40 relative shadow-md h-14">
-        <div class="px-3 sm:px-4 h-full flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <button id="btn-toggle-sidebar" class="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-dark-border text-gray-400 shrink-0" aria-label="Ranking de proveedores"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
-                <img src="logo chavez 2.png" alt="Logo Chávez" class="h-7 sm:h-8 object-contain shrink-0 drop-shadow-md">
-                <div class="h-6 w-px bg-dark-border mx-1 hidden sm:block"></div> 
-                <h1 class="text-sm sm:text-base font-black text-white tracking-tight leading-none mt-0.5 truncate">Costo Logístico 2026</h1>
-            </div>
-            
-            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <div id="last-updated" class="text-[10px] text-gray-400 hidden sm:block bg-dark-card px-2 py-1 rounded-full border border-dark-border">Esperando datos</div>
-                <div id="bolivia-clock" class="flex items-center gap-1.5 bg-dark-card border border-dark-border text-gray-300 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm">
-                    <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-400 shrink-0"></i>
-                    <span id="clock-text">Cargando hora...</span>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- PANTALLA 1: LOADING DE AUTENTICACIÓN -->
+    <div id="auth-loading" class="flex-1 flex flex-col items-center justify-center z-50 absolute inset-0 bg-dark-bg">
+        <div class="w-12 h-12 border-4 border-dark-border border-t-brand-500 rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-400 font-bold text-sm tracking-widest uppercase">Verificando seguridad...</p>
+    </div>
 
-    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/70 z-30 lg:hidden backdrop-blur-sm"></div>
+    <!-- PANTALLA 2: INICIO DE SESIÓN -->
+    <div id="login-wrapper" class="hidden flex-1 flex-col items-center justify-center p-4 z-40 absolute inset-0 bg-dark-bg">
+        <div class="w-full max-w-md bg-dark-panel rounded-2xl shadow-2xl border border-dark-border p-8 card-glow">
+            <div class="flex justify-center mb-8">
+                <img src="logo chavez 2.png" alt="Logo" class="h-12 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" style="filter: brightness(0) invert(1);" onerror="this.style.display='none'">
+            </div>
+            <h2 class="text-2xl font-black text-white text-center mb-1">Acceso Protegido</h2>
+            <p class="text-gray-400 text-center text-xs font-bold uppercase tracking-widest mb-8">Panel de Costo Logístico</p>
 
-    <div class="flex-1 flex overflow-visible lg:overflow-hidden relative">
-        
-        <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-dark-panel border-r border-dark-border flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_30px_rgba(0,0,0,0.5)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
-            <div class="p-4 border-b border-dark-border shrink-0 bg-dark-card/50 flex items-center justify-between">
+            <div id="login-error" class="hidden mb-4 p-3 bg-[#F72585]/10 border border-[#F72585]/30 text-[#F72585] rounded-lg text-sm flex items-start gap-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5 shrink-0"></i>
+                <span id="login-error-text">Correo o contraseña incorrectos.</span>
+            </div>
+
+            <form id="login-form" class="space-y-4">
                 <div>
-                    <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-400"></i>Ranking Proveedores</h3>
-                    <p class="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide font-medium">Flujo Continuo</p>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Correo Corporativo</label>
+                    <input type="email" id="email" required class="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="ejemplo@farmaciaschavez.com">
                 </div>
-                <button id="btn-close-sidebar" class="lg:hidden text-gray-500 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
-                <div id="provider-track" class="track-scroller gap-4"></div>
-            </div>
-        </aside>
-
-        <main class="flex-1 flex flex-col relative overflow-visible lg:overflow-hidden p-3 lg:p-4 gap-4">
-            
-            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-dark-bg/80 backdrop-blur-md z-20">
-                <div class="bg-dark-panel p-6 rounded-2xl shadow-2xl border border-dark-border max-w-sm w-full">
-                    <img src="logo chavez 2.png" alt="Logo" class="h-12 mx-auto mb-4 opacity-90 drop-shadow-md">
-                    <h2 class="text-lg font-black text-white mb-1">Área de trabajo vacía</h2>
-                    <p class="text-gray-400 text-xs mb-4">Sincronizando datos automáticamente. Si tarda, puedes cargar el archivo manualmente.</p>
-                    <label for="excel-upload-main" class="cursor-pointer w-full flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(157,78,221,0.4)] transition-colors"><i data-lucide="upload" class="w-4 h-4"></i> Cargar Archivo<input type="file" id="excel-upload-main" accept=".xlsx, .xls, .csv" class="hidden"></label>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Contraseña</label>
+                    <input type="password" id="password" required class="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="••••••••">
                 </div>
-            </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg px-4 py-3.5 mt-4 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(157,78,221,0.4)]">
+                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar al Panel</span>
+                    <div id="login-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </button>
+            </form>
+        </div>
+    </div>
 
-            <div id="dashboard-content" class="hidden flex-col gap-4 lg:h-full">
+    <!-- PANTALLA 3: DASHBOARD PRINCIPAL (OCULTO POR DEFECTO HASTA EL LOGIN) -->
+    <div id="dashboard-wrapper" class="hidden flex-1 flex-col w-full h-full relative">
+        <header class="bg-dark-panel/90 backdrop-blur-md border-b border-dark-border shrink-0 z-40 relative shadow-md h-14">
+            <div class="px-3 sm:px-4 h-full flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <button id="btn-toggle-sidebar" class="lg:hidden inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-dark-border text-gray-400 shrink-0" aria-label="Ranking de proveedores"><i data-lucide="panel-left" class="w-5 h-5"></i></button>
+                    <img src="logo chavez 2.png" alt="Logo Chávez" class="h-7 sm:h-8 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" style="filter: brightness(0) invert(1);" onerror="this.style.display='none'">
+                    <div class="h-6 w-px bg-dark-border mx-1 hidden sm:block"></div> 
+                    <h1 class="text-sm sm:text-base font-black text-white tracking-tight leading-none mt-0.5 truncate">Costo Logístico 2026</h1>
+                </div>
                 
-                <section class="flex-none bg-dark-panel p-3 rounded-xl card-glow border border-dark-border flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-start relative z-30">
-
-                    <div class="flex-1 relative" id="dd-month">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="calendar-days" class="w-3 h-3 text-brand-400"></i> Meses</label>
-                        <button type="button" id="btn-dd-month" class="w-full bg-dark-input border border-dark-border hover:border-brand-500 text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
-                            <span id="lbl-dd-month" class="truncate font-bold">Todos los meses</span>
-                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-200" id="chev-dd-month"></i>
-                        </button>
-                        <div id="panel-dd-month" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-dark-panel border border-dark-border rounded-lg shadow-2xl overflow-hidden">
-                            <div class="flex items-center justify-between gap-2 p-2 border-b border-dark-border bg-dark-card/80">
-                                <button type="button" class="dd-select-all text-[10px] font-bold text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded hover:bg-dark-border" data-target="month">Todos</button>
-                                <button type="button" class="dd-clear-all text-[10px] font-bold text-gray-400 hover:text-gray-200 px-1.5 py-1 rounded hover:bg-dark-border" data-target="month">Ninguno</button>
-                            </div>
-                            <div class="p-2 border-b border-dark-border bg-dark-panel">
-                                <div class="relative">
-                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                                    <input type="text" id="search-month" placeholder="Buscar mes..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
-                                </div>
-                            </div>
-                            <div id="opts-dd-month" class="max-h-48 overflow-y-auto p-1.5"></div>
-                        </div>
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                    <div id="last-updated" class="text-[10px] text-gray-400 hidden sm:block bg-dark-card px-2 py-1 rounded-full border border-dark-border">Esperando datos</div>
+                    <div id="bolivia-clock" class="flex items-center gap-1.5 bg-dark-card border border-dark-border text-gray-300 px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-400 shrink-0"></i>
+                        <span id="clock-text">Cargando hora...</span>
                     </div>
-
-                    <div class="flex-1 relative" id="dd-provider">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3 text-brand-400"></i> Proveedores</label>
-                        <button type="button" id="btn-dd-provider" class="w-full bg-dark-input border border-dark-border hover:border-brand-500 text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
-                            <span id="lbl-dd-provider" class="truncate font-bold">Todos los proveedores</span>
-                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-200" id="chev-dd-provider"></i>
-                        </button>
-                        <div id="panel-dd-provider" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-dark-panel border border-dark-border rounded-lg shadow-2xl overflow-hidden">
-                            <div class="flex items-center justify-between gap-2 p-2 border-b border-dark-border bg-dark-card/80">
-                                <button type="button" class="dd-select-all text-[10px] font-bold text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded hover:bg-dark-border" data-target="provider">Todos</button>
-                                <button type="button" class="dd-clear-all text-[10px] font-bold text-gray-400 hover:text-gray-200 px-1.5 py-1 rounded hover:bg-dark-border" data-target="provider">Ninguno</button>
-                            </div>
-                            <div class="p-2 border-b border-dark-border bg-dark-panel">
-                                <div class="relative">
-                                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                                    <input type="text" id="search-provider" placeholder="Buscar proveedor..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
-                                </div>
-                            </div>
-                            <div id="opts-dd-provider" class="max-h-48 overflow-y-auto p-1.5"></div>
-                        </div>
-                    </div>
-
-                </section>
-
-                <section class="flex-none">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        
-                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#00B4D8] card-glow relative z-10">
-                            <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CL Selección Actual</h3>
-                            <p id="card-cl-mes-actual" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
-                        </div>
-                        
-                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#9D4EDD] card-glow relative z-10">
-                            <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CL Facturado</h3>
-                            <p id="card-cl-facturado" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
-                        </div>
-                        
-                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#00E5FF] card-glow relative z-10">
-                            <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Pendiente Facturar</h3>
-                            <p id="card-cl-pendiente" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
-                        </div>
-                        
-                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#F72585] card-glow relative z-10 flex justify-between items-center">
-                            <div>
-                                <h3 class="text-[10px] font-bold text-gray-400 mb-0.5 uppercase tracking-wide">Pendiente Acumulado</h3>
-                                <p id="card-cl-acumulado" class="text-lg lg:text-xl font-black text-[#F72585] truncate">Bs 0</p>
-                            </div>
-                        </div>
-
-                        <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#4361EE] card-glow relative z-10">
-                            <div class="flex justify-between items-end mb-1">
-                                <h3 class="text-[10px] font-bold text-gray-400 leading-tight uppercase">Avance<br>Mensual</h3>
-                                <p id="card-avance-mensual" class="text-base lg:text-lg font-black text-white leading-none">0%</p>
-                            </div>
-                            <div class="w-full bg-dark-border rounded-full h-1.5 mt-1"><div id="bar-avance" class="bg-[#4361EE] shadow-[0_0_8px_#4361EE] h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div></div>
-                        </div>
-
-                    </div>
-                </section>
-
-                <section class="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
-                    
-                    <div class="flex-[5] bg-dark-panel p-4 rounded-xl card-glow border border-dark-border flex flex-col relative min-h-0 z-0">
-                        <div class="flex-none mb-2">
-                            <h3 class="text-sm font-black text-white">Tendencia: Proyección vs Realidad</h3>
-                        </div>
-                        <div class="flex-1 relative w-full h-[280px] lg:h-full min-h-0">
-                            <canvas id="mainChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="flex-[2] bg-dark-panel p-4 rounded-xl card-glow border border-dark-border flex flex-col relative min-h-0 z-0">
-                        <div class="flex-none mb-2 text-center">
-                            <h3 class="text-sm font-black text-white">Progreso Anual</h3>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase">Cobrado vs Proyección Total</p>
-                        </div>
-                        <div class="flex-1 relative w-full flex items-center justify-center min-h-0 pt-2">
-                            <div class="relative w-full h-[220px] lg:h-full lg:max-h-[220px] flex items-center justify-center">
-                                <canvas id="donutChart"></canvas>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
-                                    <span id="donut-pct" class="text-3xl font-black text-white leading-none drop-shadow-[0_0_8px_rgba(157,78,221,0.5)]">0%</span>
-                                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Cobrado</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </section>
-
+                    <!-- BOTÓN DE CERRAR SESIÓN -->
+                    <button id="btn-logout" class="flex items-center gap-1.5 bg-dark-card hover:bg-[#F72585]/10 border border-dark-border hover:border-[#F72585]/50 text-gray-300 hover:text-[#F72585] px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition-colors" title="Cerrar Sesión">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="hidden sm:inline">Salir</span>
+                    </button>
+                </div>
             </div>
-        </main>
+        </header>
+
+        <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/70 z-30 lg:hidden backdrop-blur-sm"></div>
+
+        <div class="flex-1 flex overflow-visible lg:overflow-hidden relative">
+            
+            <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-dark-panel border-r border-dark-border flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_30px_rgba(0,0,0,0.5)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
+                <div class="p-4 border-b border-dark-border shrink-0 bg-dark-card/50 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-400"></i>Ranking Proveedores</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide font-medium">Flujo Continuo</p>
+                    </div>
+                    <button id="btn-close-sidebar" class="lg:hidden text-gray-500 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
+                    <div id="provider-track" class="track-scroller gap-4"></div>
+                </div>
+            </aside>
+
+            <main class="flex-1 flex flex-col relative overflow-visible lg:overflow-hidden p-3 lg:p-4 gap-4">
+                
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-dark-bg/80 backdrop-blur-md z-20">
+                    <div class="bg-dark-panel p-6 rounded-2xl shadow-2xl border border-dark-border max-w-sm w-full">
+                        <i data-lucide="database" class="w-12 h-12 mx-auto mb-4 text-brand-400 opacity-80"></i>
+                        <h2 class="text-lg font-black text-white mb-1">Área de trabajo vacía</h2>
+                        <p class="text-gray-400 text-xs mb-4">Sincronizando datos automáticamente. Si tarda, puedes cargar el archivo manualmente.</p>
+                        <label for="excel-upload-main" class="cursor-pointer w-full flex justify-center items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(157,78,221,0.4)] transition-colors"><i data-lucide="upload" class="w-4 h-4"></i> Cargar Archivo<input type="file" id="excel-upload-main" accept=".xlsx, .xls, .csv" class="hidden"></label>
+                    </div>
+                </div>
+
+                <div id="dashboard-content" class="hidden flex-col gap-4 lg:h-full">
+                    
+                    <section class="flex-none bg-dark-panel p-3 rounded-xl card-glow border border-dark-border flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-start relative z-30">
+
+                        <div class="flex-1 relative" id="dd-month">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="calendar-days" class="w-3 h-3 text-brand-400"></i> Meses</label>
+                            <button type="button" id="btn-dd-month" class="w-full bg-dark-input border border-dark-border hover:border-brand-500 text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
+                                <span id="lbl-dd-month" class="truncate font-bold">Todos los meses</span>
+                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-200" id="chev-dd-month"></i>
+                            </button>
+                            <div id="panel-dd-month" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-dark-panel border border-dark-border rounded-lg shadow-2xl overflow-hidden">
+                                <div class="flex items-center justify-between gap-2 p-2 border-b border-dark-border bg-dark-card/80">
+                                    <button type="button" class="dd-select-all text-[10px] font-bold text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded hover:bg-dark-border" data-target="month">Todos</button>
+                                    <button type="button" class="dd-clear-all text-[10px] font-bold text-gray-400 hover:text-gray-200 px-1.5 py-1 rounded hover:bg-dark-border" data-target="month">Ninguno</button>
+                                </div>
+                                <div class="p-2 border-b border-dark-border bg-dark-panel">
+                                    <div class="relative">
+                                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                        <input type="text" id="search-month" placeholder="Buscar mes..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
+                                    </div>
+                                </div>
+                                <div id="opts-dd-month" class="max-h-48 overflow-y-auto p-1.5"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 relative" id="dd-provider">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3 text-brand-400"></i> Proveedores</label>
+                            <button type="button" id="btn-dd-provider" class="w-full bg-dark-input border border-dark-border hover:border-brand-500 text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none cursor-pointer flex items-center justify-between px-3 py-2 transition-colors">
+                                <span id="lbl-dd-provider" class="truncate font-bold">Todos los proveedores</span>
+                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-200" id="chev-dd-provider"></i>
+                            </button>
+                            <div id="panel-dd-provider" class="hidden absolute top-full left-0 mt-1.5 w-full min-w-[220px] bg-dark-panel border border-dark-border rounded-lg shadow-2xl overflow-hidden">
+                                <div class="flex items-center justify-between gap-2 p-2 border-b border-dark-border bg-dark-card/80">
+                                    <button type="button" class="dd-select-all text-[10px] font-bold text-brand-400 hover:text-brand-300 px-1.5 py-1 rounded hover:bg-dark-border" data-target="provider">Todos</button>
+                                    <button type="button" class="dd-clear-all text-[10px] font-bold text-gray-400 hover:text-gray-200 px-1.5 py-1 rounded hover:bg-dark-border" data-target="provider">Ninguno</button>
+                                </div>
+                                <div class="p-2 border-b border-dark-border bg-dark-panel">
+                                    <div class="relative">
+                                        <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                                        <input type="text" id="search-provider" placeholder="Buscar proveedor..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
+                                    </div>
+                                </div>
+                                <div id="opts-dd-provider" class="max-h-48 overflow-y-auto p-1.5"></div>
+                            </div>
+                        </div>
+
+                    </section>
+
+                    <section class="flex-none">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                            
+                            <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#00B4D8] card-glow relative z-10">
+                                <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CL Selección Actual</h3>
+                                <p id="card-cl-mes-actual" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
+                            </div>
+                            
+                            <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#9D4EDD] card-glow relative z-10">
+                                <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">CL Facturado</h3>
+                                <p id="card-cl-facturado" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
+                            </div>
+                            
+                            <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#00E5FF] card-glow relative z-10">
+                                <h3 class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">Pendiente Facturar</h3>
+                                <p id="card-cl-pendiente" class="text-lg lg:text-xl font-black text-white truncate">Bs 0</p>
+                            </div>
+                            
+                            <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#F72585] card-glow relative z-10 flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-[10px] font-bold text-gray-400 mb-0.5 uppercase tracking-wide">Pendiente Acumulado</h3>
+                                    <p id="card-cl-acumulado" class="text-lg lg:text-xl font-black text-[#F72585] truncate">Bs 0</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-dark-panel p-3.5 rounded-xl border border-dark-border border-l-4 border-l-[#4361EE] card-glow relative z-10">
+                                <div class="flex justify-between items-end mb-1">
+                                    <h3 class="text-[10px] font-bold text-gray-400 leading-tight uppercase">Avance<br>Mensual</h3>
+                                    <p id="card-avance-mensual" class="text-base lg:text-lg font-black text-white leading-none">0%</p>
+                                </div>
+                                <div class="w-full bg-dark-border rounded-full h-1.5 mt-1"><div id="bar-avance" class="bg-[#4361EE] shadow-[0_0_8px_#4361EE] h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div></div>
+                            </div>
+
+                        </div>
+                    </section>
+
+                    <section class="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
+                        
+                        <div class="flex-[5] bg-dark-panel p-4 rounded-xl card-glow border border-dark-border flex flex-col relative min-h-0 z-0">
+                            <div class="flex-none mb-2">
+                                <h3 class="text-sm font-black text-white">Tendencia: Proyección vs Realidad</h3>
+                            </div>
+                            <div class="flex-1 relative w-full h-[280px] lg:h-full min-h-0">
+                                <canvas id="mainChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="flex-[2] bg-dark-panel p-4 rounded-xl card-glow border border-dark-border flex flex-col relative min-h-0 z-0">
+                            <div class="flex-none mb-2 text-center">
+                                <h3 class="text-sm font-black text-white">Progreso Anual</h3>
+                                <p class="text-[10px] text-gray-400 font-bold uppercase">Cobrado vs Proyección Total</p>
+                            </div>
+                            <div class="flex-1 relative w-full flex items-center justify-center min-h-0 pt-2">
+                                <div class="relative w-full h-[220px] lg:h-full lg:max-h-[220px] flex items-center justify-center">
+                                    <canvas id="donutChart"></canvas>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                                        <span id="donut-pct" class="text-3xl font-black text-white leading-none drop-shadow-[0_0_8px_rgba(157,78,221,0.5)]">0%</span>
+                                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Cobrado</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </section>
+
+                </div>
+            </main>
+        </div>
     </div>
 
     <script>
-        lucide.createIcons();
+        // ============================================================
+        // 1. CONFIGURACIÓN DE SUPABASE Y AUTENTICACIÓN
+        // ============================================================
+        const supabaseUrl = 'https://zpqsrjitwmbcsqxzypia.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwcXNyaml0d21iY3NxeHp5cGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MzkwMTUsImV4cCI6MjA5OTAxNTAxNX0.M4PUDceJf1rztNkLk8Yx_Mt1XmkWLo-B0Z7eAkmgYL4';
+        
+        // Cambiamos el nombre de la variable local a `supabaseClient`
+        // para que no choque con el objeto global `supabase` de la librería
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        const authLoading = document.getElementById('auth-loading');
+        const loginWrapper = document.getElementById('login-wrapper');
+        const dashboardWrapper = document.getElementById('dashboard-wrapper');
+        const loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error');
+        
+        let hasLoadedData = false; // Control para no recargar el Excel cada vez
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            handleSession(session);
+
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
+                handleSession(session);
+            });
+        }
+
+        function handleSession(session) {
+            authLoading.classList.add('hidden');
+            authLoading.classList.remove('flex');
+
+            if (session) {
+                // Ocultar login
+                loginWrapper.classList.add('hidden');
+                loginWrapper.classList.remove('flex');
+                
+                // Mostrar panel de control
+                dashboardWrapper.classList.remove('hidden');
+                dashboardWrapper.classList.add('flex');
+                
+                // Renderizar los iconos del dashboard
+                lucide.createIcons();
+
+                // Cargar los datos del Excel automáticamente SOLO una vez al iniciar sesión
+                if (!hasLoadedData) {
+                    initAutoLoad();
+                    hasLoadedData = true;
+                }
+            } else {
+                // Ocultar panel de control
+                dashboardWrapper.classList.add('hidden');
+                dashboardWrapper.classList.remove('flex');
+                
+                // Mostrar login
+                loginWrapper.classList.remove('hidden');
+                loginWrapper.classList.add('flex');
+                
+                // Renderizar iconos de la pantalla de login
+                lucide.createIcons();
+            }
+        }
+
+        // Evento: Al intentar Iniciar Sesión
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnText = document.getElementById('login-btn-text');
+            const btnSpinner = document.getElementById('login-btn-spinner');
+            
+            loginError.classList.add('hidden');
+            btnText.classList.add('hidden');
+            btnSpinner.classList.remove('hidden');
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Usamos supabaseClient para todas las llamadas a la API
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                loginError.classList.remove('hidden');
+            }
+
+            btnText.classList.remove('hidden');
+            btnSpinner.classList.add('hidden');
+        });
+
+        // Evento: Al hacer clic en Salir
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            hasLoadedData = false; // Reiniciar estado por si entra otra cuenta
+        });
+
+        // ============================================================
+        // 2. LÓGICA ORIGINAL DEL DASHBOARD (GRÁFICOS Y DATOS)
+        // ============================================================
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
         Chart.defaults.color = '#94a3b8';
 
-        // ============================================================
-        // CONFIGURACIÓN DE URL PÚBLICA (.xlsx)
-        // ============================================================
         const AUTO_LOAD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDRPZbdY3KuYnHMtdusBham7oUa07KROIZkSb-IKDhgCE7TM2YhgSlIDUQ_9u79Q/pub?output=xlsx";
         const AUTO_REFRESH_MINUTES = 5;
 
@@ -303,7 +425,6 @@
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        // --- EXTRACTOR DE NÚMEROS A PRUEBA DE BALAS ---
         const parseNum = (val) => {
             if (val === null || val === undefined || val === '') return 0;
             if (typeof val === 'number') return val;
@@ -402,13 +523,13 @@
             } catch(e) { console.error(e); if (!silent) showToast(e.message, "error"); els.load.classList.replace('flex', 'hidden'); }
         }
 
+        // Se llama solo si el usuario ha iniciado sesión
         function initAutoLoad() {
-            if (!AUTO_LOAD_URL || AUTO_LOAD_URL.includes('PEGA_AQUI_TU_ID')) return;
+            if (!AUTO_LOAD_URL) return;
             els.loadMsg.textContent = "Sincronizando datos publicados...";
             loadFromUrl(AUTO_LOAD_URL);
             if (AUTO_REFRESH_MINUTES > 0) setInterval(() => loadFromUrl(AUTO_LOAD_URL, true), AUTO_REFRESH_MINUTES * 60 * 1000);
         }
-        initAutoLoad();
 
         async function handleFile(file) {
             if (!file) return; els.load.classList.replace('hidden', 'flex'); els.loadMsg.textContent = "Procesando archivo local...";
@@ -627,6 +748,9 @@
                 }
             });
         }
+
+        // Ejecutar revisión de seguridad al cargar la página
+        checkAuth();
     </script>
 </body>
 </html>
