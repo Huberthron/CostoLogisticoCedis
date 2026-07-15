@@ -118,7 +118,7 @@
                     <input type="password" id="password" required class="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="••••••••">
                 </div>
                 <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg px-4 py-3.5 mt-4 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(157,78,221,0.4)]">
-                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar al Panel</span>
+                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar</span>
                     <div id="login-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 </button>
             </form>
@@ -143,7 +143,7 @@
                     </div>
                     <button id="btn-logout" class="flex items-center gap-1.5 bg-dark-card hover:bg-[#F72585]/10 border border-dark-border hover:border-[#F72585]/50 text-gray-300 hover:text-[#F72585] px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition-colors" title="Cerrar Sesión">
                         <i data-lucide="log-out" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="hidden sm:inline">Salir</span>
+                        <span class="hidden sm:inline">Cerrar sesión</span>
                     </button>
                 </div>
             </div>
@@ -176,7 +176,8 @@
                     </div>
                 </div>
                 
-                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3 scroll-smooth" id="provider-container">
+                <!-- Contenedor del panel izquierdo (Scroll NATIVO con JS) -->
+                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
                     <div id="provider-track" class="track-scroller gap-4"></div>
                 </div>
             </aside>
@@ -404,7 +405,7 @@
         });
 
         // ============================================================
-        // 2. LÓGICA DE CARGA Y FILTROS
+        // 2. LÓGICA DE CARGA, FILTROS Y SCROLL JAVASCRIPT
         // ============================================================
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
@@ -426,15 +427,16 @@
             chkPendiente: document.getElementById('filter-pendiente'),
             sortSelect: document.getElementById('sort-provider'),
             pContainer: document.getElementById('provider-container'),
+            pTrack: document.getElementById('provider-track'),
             cClMes: document.getElementById('card-cl-mes-actual'), cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
-            cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
+            cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        // --- SISTEMA DE SCROLL JS INFINITO PERMITE VER EL #1 SIN PROBLEMA ---
+        // --- MOTOR DE AUTO-SCROLL CON JAVASCRIPT ---
         let scrollAnimId;
-        let scrollPos = 0;
+        let exactScrollPos = 0;
         let isHovering = false;
-
+        
         const pauseAnim = () => { isHovering = true; };
         const resumeAnim = () => { isHovering = false; };
         
@@ -449,13 +451,32 @@
             clearTimeout(wheelTimeout);
             wheelTimeout = setTimeout(resumeAnim, 1500);
         }, {passive: true});
-
-        els.pContainer.addEventListener('scroll', () => {
-            if (isHovering) {
-                // Al scrollear manualmente sincronizamos la posición matemática con el DOM
-                scrollPos = els.pContainer.scrollTop;
-            }
+        els.pContainer.addEventListener('touchmove', () => {
+            pauseAnim();
+            clearTimeout(wheelTimeout);
+            wheelTimeout = setTimeout(resumeAnim, 1500);
         }, {passive: true});
+
+        function startAutoScroll() {
+            // Si el usuario NO tiene el cursor encima y hay contenido suficiente para scrollear
+            if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
+                const rep = parseInt(els.pTrack.dataset.repeat) || 2;
+                const singleBlock = els.pTrack.scrollHeight / rep;
+                
+                exactScrollPos += 0.4; // Ajuste de velocidad suave
+                
+                // Efecto de bucle infinito imperceptible
+                if (exactScrollPos >= singleBlock) {
+                    exactScrollPos -= singleBlock;
+                }
+                
+                els.pContainer.scrollTop = Math.floor(exactScrollPos);
+            } else {
+                // Si el usuario está scrolleando, sincronizamos nuestra variable matemática con el DOM real
+                exactScrollPos = els.pContainer.scrollTop;
+            }
+            scrollAnimId = requestAnimationFrame(startAutoScroll);
+        }
 
         const parseNum = (val) => {
             if (val === null || val === undefined || val === '') return 0;
@@ -739,7 +760,7 @@
                 const key = `${pv}|${mesRaw}`;
                 
                 if (!agg[key]) {
-                    // CÓDIGO PARA FORZAR EL PORCENTAJE DEL CL A 2 DECIMALES
+                    // Garantizamos estrictamente el formato 3.00%
                     let clRaw = getCol(r, 'cl');
                     let clStr = '';
                     if (clRaw !== undefined && clRaw !== null && clRaw !== '') {
@@ -752,7 +773,6 @@
                         }
                         
                         if (!isNaN(valNum)) {
-                            // Se formatea a 2 decimales fijos ej: "3.00%"
                             clStr = valNum.toFixed(2) + '%';
                         } else {
                             clStr = '-';
@@ -839,34 +859,17 @@
                 `;
             });
 
-            // LIMPIAMOS ESTADOS ANTERIORES PARA EL NUEVO LOOP JS
+            // LIMPIAMOS ESTADOS ANTERIORES PARA EL BUCLE JAVASCRIPT
             cancelAnimationFrame(scrollAnimId);
-            scrollPos = 0;
+            exactScrollPos = 0;
             els.pContainer.scrollTop = 0;
 
             const repeatCount = arr.length < 5 ? 4 : 2; 
+            els.pTrack.dataset.repeat = repeatCount; // Guardamos el multiplicador
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
             
-            // LOOP JS: Hace el auto-scroll de forma nativa sin romper el CSS transform
-            const startScrollLoop = () => {
-                // Solo avanza si no hay hover y si hay suficientes elementos para scrollear
-                if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
-                    scrollPos += 0.5; // Velocidad del scroll
-                    const singleBlockHeight = els.pTrack.scrollHeight / repeatCount;
-                    
-                    // Cuando llega al final del primer bloque invisible, resetea a 0
-                    if (scrollPos >= singleBlockHeight) {
-                        scrollPos -= singleBlockHeight;
-                    }
-                    
-                    // Asignamos el valor al ScrollTop del navegador
-                    els.pContainer.scrollTop = scrollPos;
-                }
-                scrollAnimId = requestAnimationFrame(startScrollLoop);
-            };
-
-            // Ejecutamos la animación nativa de inmediato
-            scrollAnimId = requestAnimationFrame(startScrollLoop);
+            // INICIAMOS EL MOVIMIENTO NATIVO AUTOMÁTICO INCONDICIONALMENTE
+            scrollAnimId = requestAnimationFrame(startAutoScroll);
         }
 
         function updateMainChart(data, selectedMonths, isPendiente) {
