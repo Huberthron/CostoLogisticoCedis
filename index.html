@@ -47,7 +47,8 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
         }
 
-        .track-scroller { display: flex; flex-direction: column; }
+        #provider-container { overflow-y: auto; overflow-x: hidden; }
+        #provider-track { will-change: transform; display: flex; flex-direction: column; }
 
         @keyframes fadeStatus {
             0%, 100% { opacity: 0.3; transform: scale(0.96); }
@@ -118,7 +119,7 @@
                     <input type="password" id="password" required class="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="••••••••">
                 </div>
                 <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg px-4 py-3.5 mt-4 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(157,78,221,0.4)]">
-                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar</span>
+                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar al Panel</span>
                     <div id="login-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 </button>
             </form>
@@ -143,7 +144,7 @@
                     </div>
                     <button id="btn-logout" class="flex items-center gap-1.5 bg-dark-card hover:bg-[#F72585]/10 border border-dark-border hover:border-[#F72585]/50 text-gray-300 hover:text-[#F72585] px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition-colors" title="Cerrar Sesión">
                         <i data-lucide="log-out" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="hidden sm:inline">Cerrar sesión</span>
+                        <span class="hidden sm:inline">Salir</span>
                     </button>
                 </div>
             </div>
@@ -176,7 +177,6 @@
                     </div>
                 </div>
                 
-                <!-- Contenedor del panel izquierdo (Scroll NATIVO con JS) -->
                 <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
                     <div id="provider-track" class="track-scroller gap-4"></div>
                 </div>
@@ -405,7 +405,7 @@
         });
 
         // ============================================================
-        // 2. LÓGICA DE CARGA, FILTROS Y SCROLL JAVASCRIPT
+        // 2. LÓGICA DE CARGA, FILTROS Y MOTOR HÍBRIDO (GPU + NATIVO)
         // ============================================================
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
@@ -432,51 +432,68 @@
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        // --- MOTOR DE AUTO-SCROLL CON JAVASCRIPT ---
+        // --- MOTOR DE ANIMACIÓN "RELEVO" (HANDOFF) ---
+        // Combina la fluidez de GPU (transform) con la libertad del Scroll nativo
         let scrollAnimId;
-        let exactScrollPos = 0;
+        let trackY = 0;
         let isHovering = false;
-        
-        const pauseAnim = () => { isHovering = true; };
-        const resumeAnim = () => { isHovering = false; };
-        
-        els.pContainer.addEventListener('mouseenter', pauseAnim);
-        els.pContainer.addEventListener('mouseleave', resumeAnim);
-        els.pContainer.addEventListener('touchstart', pauseAnim, {passive: true});
-        els.pContainer.addEventListener('touchend', () => setTimeout(resumeAnim, 1500), {passive: true});
-        
-        let wheelTimeout;
-        els.pContainer.addEventListener('wheel', () => {
-            pauseAnim();
-            clearTimeout(wheelTimeout);
-            wheelTimeout = setTimeout(resumeAnim, 1500);
-        }, {passive: true});
-        els.pContainer.addEventListener('touchmove', () => {
-            pauseAnim();
-            clearTimeout(wheelTimeout);
-            wheelTimeout = setTimeout(resumeAnim, 1500);
-        }, {passive: true});
+        const SCROLL_SPEED = 0.5; // Ajusta esto para más o menos velocidad
 
         function startAutoScroll() {
-            // Si el usuario NO tiene el cursor encima y hay contenido suficiente para scrollear
             if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
                 const rep = parseInt(els.pTrack.dataset.repeat) || 2;
                 const singleBlock = els.pTrack.scrollHeight / rep;
-                
-                exactScrollPos += 0.4; // Ajuste de velocidad suave
-                
-                // Efecto de bucle infinito imperceptible
-                if (exactScrollPos >= singleBlock) {
-                    exactScrollPos -= singleBlock;
+
+                trackY -= SCROLL_SPEED;
+
+                // Reseteo imperceptible para loop infinito
+                if (Math.abs(trackY) >= singleBlock) {
+                    trackY += singleBlock;
                 }
-                
-                els.pContainer.scrollTop = Math.floor(exactScrollPos);
-            } else {
-                // Si el usuario está scrolleando, sincronizamos nuestra variable matemática con el DOM real
-                exactScrollPos = els.pContainer.scrollTop;
+
+                // Renderizado por GPU: Suave y acepta decimales perfectos
+                els.pTrack.style.transform = `translate3d(0, ${trackY}px, 0)`;
             }
             scrollAnimId = requestAnimationFrame(startAutoScroll);
         }
+
+        const pauseAnim = () => { 
+            if (isHovering) return;
+            isHovering = true; 
+            
+            // RELEVO: Pasamos la distancia de la GPU al Scroll Nativo
+            els.pContainer.scrollTop = Math.abs(trackY);
+            els.pTrack.style.transform = 'translate3d(0, 0px, 0)'; 
+        };
+        
+        const resumeAnim = () => { 
+            if (!isHovering) return;
+            isHovering = false; 
+            
+            // RELEVO INVERSO: Capturamos dónde dejó el usuario el Scroll Nativo y lo pasamos a la GPU
+            trackY = -els.pContainer.scrollTop;
+            els.pContainer.scrollTop = 0;
+            els.pTrack.style.transform = `translate3d(0, ${trackY}px, 0)`;
+        };
+        
+        let interactionTimeout;
+        const handleInteraction = () => {
+            pauseAnim();
+            clearTimeout(interactionTimeout);
+            interactionTimeout = setTimeout(resumeAnim, 1500);
+        };
+
+        els.pContainer.addEventListener('mouseenter', pauseAnim);
+        els.pContainer.addEventListener('mouseleave', resumeAnim);
+        
+        els.pContainer.addEventListener('wheel', handleInteraction, {passive: true});
+        els.pContainer.addEventListener('touchmove', handleInteraction, {passive: true});
+        els.pContainer.addEventListener('touchstart', pauseAnim, {passive: true});
+        els.pContainer.addEventListener('touchend', () => {
+            clearTimeout(interactionTimeout);
+            interactionTimeout = setTimeout(resumeAnim, 1500);
+        }, {passive: true});
+
 
         const parseNum = (val) => {
             if (val === null || val === undefined || val === '') return 0;
@@ -760,7 +777,7 @@
                 const key = `${pv}|${mesRaw}`;
                 
                 if (!agg[key]) {
-                    // Garantizamos estrictamente el formato 3.00%
+                    // CÓDIGO PARA FORMATO "3.00%"
                     let clRaw = getCol(r, 'cl');
                     let clStr = '';
                     if (clRaw !== undefined && clRaw !== null && clRaw !== '') {
@@ -859,16 +876,18 @@
                 `;
             });
 
-            // LIMPIAMOS ESTADOS ANTERIORES PARA EL BUCLE JAVASCRIPT
+            // LIMPIEZA TOTAL PARA EL NUEVO LOOP
             cancelAnimationFrame(scrollAnimId);
-            exactScrollPos = 0;
+            trackY = 0;
+            isHovering = false;
             els.pContainer.scrollTop = 0;
+            els.pTrack.style.transform = 'translate3d(0, 0px, 0)';
 
             const repeatCount = arr.length < 5 ? 4 : 2; 
-            els.pTrack.dataset.repeat = repeatCount; // Guardamos el multiplicador
+            els.pTrack.dataset.repeat = repeatCount; 
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
             
-            // INICIAMOS EL MOVIMIENTO NATIVO AUTOMÁTICO INCONDICIONALMENTE
+            // INICIAMOS LA ANIMACIÓN GPU
             scrollAnimId = requestAnimationFrame(startAutoScroll);
         }
 
