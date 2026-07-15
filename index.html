@@ -436,7 +436,6 @@
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        // --- MANEJO DE PAUSA MANUAL EN EL SCROLL (Rueda y Táctil) ---
         const pauseAnim = () => { if(els.pTrack) els.pTrack.style.animationPlayState = 'paused'; };
         const resumeAnim = () => { if(els.pTrack && !els.pContainer.matches(':hover')) els.pTrack.style.animationPlayState = 'running'; };
         
@@ -732,10 +731,26 @@
                 const key = `${pv}|${mesRaw}`;
                 
                 if (!agg[key]) {
+                    // Extraer y formatear el porcentaje de CL
+                    let clRaw = getCol(r, 'cl');
+                    let clStr = '';
+                    if (clRaw !== undefined && clRaw !== null && clRaw !== '') {
+                        if (typeof clRaw === 'number') {
+                            let valNum = clRaw <= 1 ? clRaw * 100 : clRaw;
+                            clStr = (Math.round(valNum * 100) / 100).toString().replace('.', ',') + '%';
+                        } else {
+                            clStr = String(clRaw).trim();
+                            if (!clStr.endsWith('%')) clStr += '%';
+                        }
+                    } else {
+                        clStr = '-';
+                    }
+
                     agg[key] = { 
                         prov: pv, 
                         mesRaw: mesRaw,
                         mes: mesRaw.charAt(0).toUpperCase() + mesRaw.slice(1), 
+                        cl: clStr,
                         total: 0, 
                         hasPendiente: false 
                     };
@@ -799,13 +814,15 @@
                             <div class="w-full bg-dark-border rounded-full h-1.5 mr-3 relative overflow-hidden">
                                 <div class="absolute left-0 top-0 bottom-0 rounded-full transition-all duration-1000 ${colorBarClass}" style="width: ${(item.total/max)*100}%"></div>
                             </div>
-                            <span class="text-xs font-black text-white shrink-0">${formatCurrency(item.total)}</span>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[9px] font-bold text-gray-400 bg-dark-bg border border-dark-border px-1.5 rounded leading-none py-0.5" title="% Costo Logístico">CL: ${item.cl}</span>
+                                <span class="text-xs font-black text-white">${formatCurrency(item.total)}</span>
+                            </div>
                         </div>
                     </div>
                 `;
             });
 
-            // LA ANIMACIÓN AHORA FUNCIONA SIEMPRE, SIN IMPORTAR EL FILTRO
             const repeatCount = arr.length < 5 ? 4 : 2; 
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
             const speedPerItem = 2.5; 
@@ -815,9 +832,8 @@
             void els.pTrack.offsetWidth; 
             els.pTrack.style.animation = `scrollUp ${totalDuration / repeatCount}s linear infinite`;
 
-            // REINICIO DE SCROLL: Regresa la vista física y de animación siempre al #1
             els.pContainer.scrollTop = 0;
-            els.pTrack.style.animationPlayState = 'running'; // Asegura que siempre arranque
+            els.pTrack.style.animationPlayState = 'running'; 
         }
 
         function updateMainChart(data, selectedMonths, isPendiente) {
