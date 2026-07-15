@@ -47,7 +47,6 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
         }
 
-        #provider-container { will-change: scroll-position; }
         .track-scroller { display: flex; flex-direction: column; }
 
         @keyframes fadeStatus {
@@ -119,7 +118,7 @@
                     <input type="password" id="password" required class="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="••••••••">
                 </div>
                 <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg px-4 py-3.5 mt-4 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(157,78,221,0.4)]">
-                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar al Panel</span>
+                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar</span>
                     <div id="login-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 </button>
             </form>
@@ -144,7 +143,7 @@
                     </div>
                     <button id="btn-logout" class="flex items-center gap-1.5 bg-dark-card hover:bg-[#F72585]/10 border border-dark-border hover:border-[#F72585]/50 text-gray-300 hover:text-[#F72585] px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition-colors" title="Cerrar Sesión">
                         <i data-lucide="log-out" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="hidden sm:inline">Salir</span>
+                        <span class="hidden sm:inline">Cerrar sesión</span>
                     </button>
                 </div>
             </div>
@@ -177,7 +176,8 @@
                     </div>
                 </div>
                 
-                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3 scroll-smooth" id="provider-container">
+                <!-- Contenedor del panel izquierdo (Scroll NATIVO con JS) -->
+                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
                     <div id="provider-track" class="track-scroller gap-4"></div>
                 </div>
             </aside>
@@ -405,7 +405,7 @@
         });
 
         // ============================================================
-        // 2. LÓGICA DE CARGA, FILTROS Y SCROLL A ESTRICTOS 60Hz
+        // 2. LÓGICA DE CARGA, FILTROS Y SCROLL JAVASCRIPT
         // ============================================================
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
@@ -432,23 +432,13 @@
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        // --- MOTOR AUTO-SCROLL ESTÁNDAR 60HZ ---
+        // --- MOTOR DE AUTO-SCROLL CON JAVASCRIPT ---
         let scrollAnimId;
         let exactScrollPos = 0;
         let isHovering = false;
-        let lastTimestamp = 0;
-        const fpsInterval = 1000 / 60; // Forzamos 60Hz (~16.6ms)
-
-        const pauseAnim = () => { 
-            isHovering = true; 
-            lastTimestamp = 0; 
-        };
         
-        const resumeAnim = () => { 
-            isHovering = false; 
-            if (els.pContainer) exactScrollPos = els.pContainer.scrollTop; 
-            lastTimestamp = performance.now(); 
-        };
+        const pauseAnim = () => { isHovering = true; };
+        const resumeAnim = () => { isHovering = false; };
         
         els.pContainer.addEventListener('mouseenter', pauseAnim);
         els.pContainer.addEventListener('mouseleave', resumeAnim);
@@ -467,31 +457,25 @@
             wheelTimeout = setTimeout(resumeAnim, 1500);
         }, {passive: true});
 
-        function startAutoScroll(timestamp) {
-            scrollAnimId = requestAnimationFrame(startAutoScroll);
-
-            if (!lastTimestamp) lastTimestamp = timestamp;
-            const elapsed = timestamp - lastTimestamp;
-
-            // Limitar estrictamente a 60 FPS
-            if (elapsed > fpsInterval) {
-                lastTimestamp = timestamp - (elapsed % fpsInterval);
-
-                if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
-                    const rep = parseInt(els.pTrack.dataset.repeat) || 2;
-                    const singleBlock = els.pTrack.scrollHeight / rep;
-
-                    exactScrollPos += 0.5; // Velocidad fija (medio pixel por fotograma a 60hz)
-
-                    if (exactScrollPos >= singleBlock) {
-                        exactScrollPos -= singleBlock;
-                    }
-
-                    els.pContainer.scrollTop = exactScrollPos;
-                } else {
-                    exactScrollPos = els.pContainer.scrollTop;
+        function startAutoScroll() {
+            // Si el usuario NO tiene el cursor encima y hay contenido suficiente para scrollear
+            if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
+                const rep = parseInt(els.pTrack.dataset.repeat) || 2;
+                const singleBlock = els.pTrack.scrollHeight / rep;
+                
+                exactScrollPos += 0.4; // Ajuste de velocidad suave
+                
+                // Efecto de bucle infinito imperceptible
+                if (exactScrollPos >= singleBlock) {
+                    exactScrollPos -= singleBlock;
                 }
+                
+                els.pContainer.scrollTop = Math.floor(exactScrollPos);
+            } else {
+                // Si el usuario está scrolleando, sincronizamos nuestra variable matemática con el DOM real
+                exactScrollPos = els.pContainer.scrollTop;
             }
+            scrollAnimId = requestAnimationFrame(startAutoScroll);
         }
 
         const parseNum = (val) => {
@@ -875,17 +859,16 @@
                 `;
             });
 
-            // LIMPIAMOS ESTADOS ANTERIORES
+            // LIMPIAMOS ESTADOS ANTERIORES PARA EL BUCLE JAVASCRIPT
             cancelAnimationFrame(scrollAnimId);
             exactScrollPos = 0;
-            lastTimestamp = 0;
             els.pContainer.scrollTop = 0;
 
             const repeatCount = arr.length < 5 ? 4 : 2; 
-            els.pTrack.dataset.repeat = repeatCount; 
+            els.pTrack.dataset.repeat = repeatCount; // Guardamos el multiplicador
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
             
-            // INICIAMOS LA ANIMACIÓN RESTRINGIDA A 60HZ
+            // INICIAMOS EL MOVIMIENTO NATIVO AUTOMÁTICO INCONDICIONALMENTE
             scrollAnimId = requestAnimationFrame(startAutoScroll);
         }
 
