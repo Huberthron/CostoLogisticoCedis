@@ -47,13 +47,7 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
         }
 
-        @keyframes scrollUp {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-50%); } 
-        }
-
         .track-scroller { display: flex; flex-direction: column; }
-        .track-scroller:hover, .track-scroller:active { animation-play-state: paused !important; }
 
         @keyframes fadeStatus {
             0%, 100% { opacity: 0.3; transform: scale(0.96); }
@@ -436,17 +430,31 @@
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        const pauseAnim = () => { if(els.pTrack) els.pTrack.style.animationPlayState = 'paused'; };
-        const resumeAnim = () => { if(els.pTrack && !els.pContainer.matches(':hover')) els.pTrack.style.animationPlayState = 'running'; };
+        // --- SISTEMA DE SCROLL JS INFINITO PERMITE VER EL #1 SIN PROBLEMA ---
+        let scrollAnimId;
+        let scrollPos = 0;
+        let isHovering = false;
+
+        const pauseAnim = () => { isHovering = true; };
+        const resumeAnim = () => { isHovering = false; };
         
         els.pContainer.addEventListener('mouseenter', pauseAnim);
         els.pContainer.addEventListener('mouseleave', resumeAnim);
         els.pContainer.addEventListener('touchstart', pauseAnim, {passive: true});
         els.pContainer.addEventListener('touchend', () => setTimeout(resumeAnim, 1500), {passive: true});
+        
+        let wheelTimeout;
         els.pContainer.addEventListener('wheel', () => {
             pauseAnim();
-            clearTimeout(els.pContainer.wheelTimeout);
-            els.pContainer.wheelTimeout = setTimeout(resumeAnim, 1000);
+            clearTimeout(wheelTimeout);
+            wheelTimeout = setTimeout(resumeAnim, 1500);
+        }, {passive: true});
+
+        els.pContainer.addEventListener('scroll', () => {
+            if (isHovering) {
+                // Al scrollear manualmente sincronizamos la posición matemática con el DOM
+                scrollPos = els.pContainer.scrollTop;
+            }
         }, {passive: true});
 
         const parseNum = (val) => {
@@ -731,16 +739,23 @@
                 const key = `${pv}|${mesRaw}`;
                 
                 if (!agg[key]) {
-                    // Extraer y formatear el porcentaje de CL
+                    // CÓDIGO PARA FORZAR EL PORCENTAJE DEL CL A 2 DECIMALES
                     let clRaw = getCol(r, 'cl');
                     let clStr = '';
                     if (clRaw !== undefined && clRaw !== null && clRaw !== '') {
+                        let valNum = 0;
                         if (typeof clRaw === 'number') {
-                            let valNum = clRaw <= 1 ? clRaw * 100 : clRaw;
-                            clStr = (Math.round(valNum * 100) / 100).toString().replace('.', ',') + '%';
+                            valNum = clRaw <= 1 ? clRaw * 100 : clRaw;
                         } else {
-                            clStr = String(clRaw).trim();
-                            if (!clStr.endsWith('%')) clStr += '%';
+                            let cleanStr = String(clRaw).replace('%', '').replace(',', '.').trim();
+                            valNum = parseFloat(cleanStr);
+                        }
+                        
+                        if (!isNaN(valNum)) {
+                            // Se formatea a 2 decimales fijos ej: "3.00%"
+                            clStr = valNum.toFixed(2) + '%';
+                        } else {
+                            clStr = '-';
                         }
                     } else {
                         clStr = '-';
@@ -786,8 +801,9 @@
             });
 
             if(!arr.length) {
-                els.pTrack.style.animation = 'none';
-                els.pTrack.innerHTML = '<div class="text-center text-gray-500 text-xs mt-4 font-bold">Sin datos en esta selección</div>'; return;
+                cancelAnimationFrame(scrollAnimId);
+                els.pTrack.innerHTML = '<div class="text-center text-gray-500 text-xs mt-4 font-bold">Sin datos en esta selección</div>'; 
+                return;
             }
 
             const max = arr.reduce((m, i) => Math.max(m, i.total), 0); 
@@ -823,17 +839,34 @@
                 `;
             });
 
+            // LIMPIAMOS ESTADOS ANTERIORES PARA EL NUEVO LOOP JS
+            cancelAnimationFrame(scrollAnimId);
+            scrollPos = 0;
+            els.pContainer.scrollTop = 0;
+
             const repeatCount = arr.length < 5 ? 4 : 2; 
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
-            const speedPerItem = 2.5; 
-            const totalDuration = arr.length * repeatCount * speedPerItem;
             
-            els.pTrack.style.animation = 'none'; 
-            void els.pTrack.offsetWidth; 
-            els.pTrack.style.animation = `scrollUp ${totalDuration / repeatCount}s linear infinite`;
+            // LOOP JS: Hace el auto-scroll de forma nativa sin romper el CSS transform
+            const startScrollLoop = () => {
+                // Solo avanza si no hay hover y si hay suficientes elementos para scrollear
+                if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
+                    scrollPos += 0.5; // Velocidad del scroll
+                    const singleBlockHeight = els.pTrack.scrollHeight / repeatCount;
+                    
+                    // Cuando llega al final del primer bloque invisible, resetea a 0
+                    if (scrollPos >= singleBlockHeight) {
+                        scrollPos -= singleBlockHeight;
+                    }
+                    
+                    // Asignamos el valor al ScrollTop del navegador
+                    els.pContainer.scrollTop = scrollPos;
+                }
+                scrollAnimId = requestAnimationFrame(startScrollLoop);
+            };
 
-            els.pContainer.scrollTop = 0;
-            els.pTrack.style.animationPlayState = 'running'; 
+            // Ejecutamos la animación nativa de inmediato
+            scrollAnimId = requestAnimationFrame(startScrollLoop);
         }
 
         function updateMainChart(data, selectedMonths, isPendiente) {
