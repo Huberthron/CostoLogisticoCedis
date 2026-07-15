@@ -48,7 +48,7 @@
         }
 
         #provider-container { will-change: scroll-position; }
-        #provider-track { will-change: transform; display: flex; flex-direction: column; }
+        .track-scroller { display: flex; flex-direction: column; }
 
         @keyframes fadeStatus {
             0%, 100% { opacity: 0.3; transform: scale(0.96); }
@@ -119,7 +119,7 @@
                     <input type="password" id="password" required class="w-full bg-dark-input border border-dark-border rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors" placeholder="••••••••">
                 </div>
                 <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-lg px-4 py-3.5 mt-4 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(157,78,221,0.4)]">
-                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar</span>
+                    <span id="login-btn-text" class="flex items-center gap-2"><i data-lucide="lock" class="w-5 h-5"></i> Ingresar al Panel</span>
                     <div id="login-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 </button>
             </form>
@@ -144,7 +144,7 @@
                     </div>
                     <button id="btn-logout" class="flex items-center gap-1.5 bg-dark-card hover:bg-[#F72585]/10 border border-dark-border hover:border-[#F72585]/50 text-gray-300 hover:text-[#F72585] px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition-colors" title="Cerrar Sesión">
                         <i data-lucide="log-out" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="hidden sm:inline">Cerrar sesión</span>
+                        <span class="hidden sm:inline">Salir</span>
                     </button>
                 </div>
             </div>
@@ -405,7 +405,7 @@
         });
 
         // ============================================================
-        // 2. LÓGICA DE CARGA, FILTROS Y AUTO-SCROLL DE ALTA FLUIDEZ
+        // 2. LÓGICA DE CARGA, FILTROS Y SCROLL A ESTRICTOS 60Hz
         // ============================================================
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
@@ -432,17 +432,16 @@
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
 
-        // --- MOTOR AUTO-SCROLL CON COMPENSACIÓN DE SUB-PÍXELES (MÁXIMA FLUIDEZ) ---
+        // --- MOTOR AUTO-SCROLL ESTÁNDAR 60HZ ---
         let scrollAnimId;
         let exactScrollPos = 0;
         let isHovering = false;
-        let lastTimestamp = null;
-        const SCROLL_SPEED = 25; // Velocidad en Píxeles por segundo (suavidad y legibilidad)
+        let lastTimestamp = 0;
+        const fpsInterval = 1000 / 60; // Forzamos 60Hz (~16.6ms)
 
         const pauseAnim = () => { 
             isHovering = true; 
-            lastTimestamp = null; // Reinicia el timer para evitar saltos temporales
-            if (els.pTrack) els.pTrack.style.transform = 'translate3d(0, 0, 0)'; 
+            lastTimestamp = 0; 
         };
         
         const resumeAnim = () => { 
@@ -469,37 +468,30 @@
         }, {passive: true});
 
         function startAutoScroll(timestamp) {
-            if (!lastTimestamp) lastTimestamp = timestamp;
-            const deltaTime = timestamp - lastTimestamp;
-            lastTimestamp = timestamp;
-
-            if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
-                const rep = parseInt(els.pTrack.dataset.repeat) || 2;
-                const singleBlock = els.pTrack.scrollHeight / rep;
-
-                // Movemos en base al tiempo transcurrido (Delta-Time). Ignora lagazos y se adapta a cualquier monitor.
-                exactScrollPos += (SCROLL_SPEED * deltaTime) / 1000;
-
-                // Bucle infinito
-                if (exactScrollPos >= singleBlock) {
-                    exactScrollPos -= singleBlock;
-                }
-
-                // El navegador solo admite enteros en scrollTop.
-                const intPos = Math.floor(exactScrollPos);
-                // El sobrante decimal (sub-píxel) lo guardamos para el GPU.
-                const fracPos = exactScrollPos - intPos;
-
-                // Ajustamos el contenedor físicamente (permite hacer scroll manual al pausar)
-                els.pContainer.scrollTop = intPos;
-                // Compensamos la falta de decimales usando CSS transform (Suavidad absoluta 100% fluida)
-                els.pTrack.style.transform = `translate3d(0, -${fracPos}px, 0)`;
-            } else {
-                exactScrollPos = els.pContainer.scrollTop;
-                els.pTrack.style.transform = `translate3d(0, 0, 0)`;
-            }
-
             scrollAnimId = requestAnimationFrame(startAutoScroll);
+
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const elapsed = timestamp - lastTimestamp;
+
+            // Limitar estrictamente a 60 FPS
+            if (elapsed > fpsInterval) {
+                lastTimestamp = timestamp - (elapsed % fpsInterval);
+
+                if (!isHovering && els.pContainer.scrollHeight > els.pContainer.clientHeight) {
+                    const rep = parseInt(els.pTrack.dataset.repeat) || 2;
+                    const singleBlock = els.pTrack.scrollHeight / rep;
+
+                    exactScrollPos += 0.5; // Velocidad fija (medio pixel por fotograma a 60hz)
+
+                    if (exactScrollPos >= singleBlock) {
+                        exactScrollPos -= singleBlock;
+                    }
+
+                    els.pContainer.scrollTop = exactScrollPos;
+                } else {
+                    exactScrollPos = els.pContainer.scrollTop;
+                }
+            }
         }
 
         const parseNum = (val) => {
@@ -886,14 +878,14 @@
             // LIMPIAMOS ESTADOS ANTERIORES
             cancelAnimationFrame(scrollAnimId);
             exactScrollPos = 0;
+            lastTimestamp = 0;
             els.pContainer.scrollTop = 0;
 
             const repeatCount = arr.length < 5 ? 4 : 2; 
             els.pTrack.dataset.repeat = repeatCount; 
             els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
             
-            // INICIAMOS LA ANIMACIÓN SUAVE
-            lastTimestamp = performance.now();
+            // INICIAMOS LA ANIMACIÓN RESTRINGIDA A 60HZ
             scrollAnimId = requestAnimationFrame(startAutoScroll);
         }
 
