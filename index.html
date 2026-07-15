@@ -160,15 +160,31 @@
         <div class="flex-1 flex overflow-visible lg:overflow-hidden relative">
             
             <aside id="sidebar-providers" class="hidden fixed top-14 left-0 bottom-0 z-40 w-[85%] max-w-[300px] -translate-x-full transition-transform duration-300 ease-in-out bg-dark-panel border-r border-dark-border flex-col shrink-0 shadow-2xl lg:shadow-[4px_0_30px_rgba(0,0,0,0.5)] lg:static lg:top-auto lg:bottom-auto lg:h-full lg:w-[320px] lg:translate-x-0 lg:transition-none lg:z-10">
-                <div class="p-4 border-b border-dark-border shrink-0 bg-dark-card/50 flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-400"></i>Estado de Proveedores</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide font-medium">Desglose Mensual</p>
+                <div class="p-4 border-b border-dark-border shrink-0 bg-dark-card/50 flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-brand-400"></i>Estado de Proveedores</h3>
+                            <p class="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide font-medium">Desglose Mensual</p>
+                        </div>
+                        <button id="btn-close-sidebar" class="lg:hidden text-gray-500 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
-                    <button id="btn-close-sidebar" class="lg:hidden text-gray-500 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    
+                    <!-- NUEVO: Selector de Ordenamiento -->
+                    <div class="relative w-full">
+                        <select id="sort-provider" class="w-full bg-dark-input border border-dark-border text-white text-[11px] rounded-md focus:ring-1 focus:ring-brand-500 outline-none appearance-none cursor-pointer px-3 py-2 transition-colors font-bold shadow-sm">
+                            <option value="monto-desc">↓ Mayor a Menor (Monto)</option>
+                            <option value="monto-asc">↑ Menor a Mayor (Monto)</option>
+                            <option value="az">↓ A-Z (Proveedor)</option>
+                            <option value="za">↑ Z-A (Proveedor)</option>
+                            <option value="mes-asc">↓ Mes Cronológico (Ene-Dic)</option>
+                            <option value="mes-desc">↑ Mes Inverso (Dic-Ene)</option>
+                        </select>
+                        <i data-lucide="arrow-down-up" class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                    </div>
+
                 </div>
                 
-                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3" id="provider-container">
+                <div class="flex-1 overflow-y-auto relative mask-scroll p-4 pr-3 scroll-smooth" id="provider-container">
                     <div id="provider-track" class="track-scroller gap-4"></div>
                 </div>
             </aside>
@@ -206,7 +222,7 @@
                                 <div class="p-2 border-b border-dark-border bg-dark-panel">
                                     <div class="relative">
                                         <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                                        <input type="text" id="search-month" placeholder="Buscar mes..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
+                                        <input type="text" id="search-month" placeholder="Buscar mes (Enter para aplicar)..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
                                     </div>
                                 </div>
                                 <div id="opts-dd-month" class="max-h-48 overflow-y-auto p-1.5"></div>
@@ -227,7 +243,7 @@
                                 <div class="p-2 border-b border-dark-border bg-dark-panel">
                                     <div class="relative">
                                         <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                                        <input type="text" id="search-provider" placeholder="Buscar proveedor..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
+                                        <input type="text" id="search-provider" placeholder="Buscar proveedor (Enter para aplicar)..." class="w-full text-[11px] pl-8 pr-2 py-1.5 bg-dark-input border border-dark-border text-white rounded outline-none focus:border-brand-500 transition-colors placeholder-gray-500">
                                     </div>
                                 </div>
                                 <div id="opts-dd-provider" class="max-h-48 overflow-y-auto p-1.5"></div>
@@ -417,6 +433,8 @@
             ddMonthBtn: document.getElementById('btn-dd-month'), ddMonthPanel: document.getElementById('panel-dd-month'), ddMonthOpts: document.getElementById('opts-dd-month'), ddMonthLbl: document.getElementById('lbl-dd-month'), ddMonthChev: document.getElementById('chev-dd-month'),
             ddProvBtn: document.getElementById('btn-dd-provider'), ddProvPanel: document.getElementById('panel-dd-provider'), ddProvOpts: document.getElementById('opts-dd-provider'), ddProvLbl: document.getElementById('lbl-dd-provider'), ddProvChev: document.getElementById('chev-dd-provider'),
             chkPendiente: document.getElementById('filter-pendiente'),
+            sortSelect: document.getElementById('sort-provider'),
+            pContainer: document.getElementById('provider-container'),
             cClMes: document.getElementById('card-cl-mes-actual'), cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
@@ -453,8 +471,8 @@
 
         els.fInpMain.addEventListener('change', (e) => handleFile(e.target.files[0]));
         els.chkPendiente.addEventListener('change', () => { updateDashboard(); });
+        els.sortSelect.addEventListener('change', () => { updateDashboard(); });
 
-        // NUEVA LÓGICA DE FILTRADO Y AUTO-SELECCIÓN
         function filterOptionsAndSelect(term, container, isMonth) {
             const search = normalizeStr(term);
             const labels = container.querySelectorAll('label');
@@ -466,9 +484,9 @@
                 
                 const checkbox = lbl.querySelector('input[type="checkbox"]');
                 if (search.length > 0) {
-                    checkbox.checked = isMatch; // Si busca, selecciona solo coincidencias
+                    checkbox.checked = isMatch;
                 } else {
-                    checkbox.checked = true; // Si borra la búsqueda, selecciona todos
+                    checkbox.checked = true;
                 }
             });
             
@@ -479,19 +497,11 @@
         els.searchMonth.addEventListener('input', (e) => filterOptionsAndSelect(e.target.value, els.ddMonthOpts, true));
         els.searchProv.addEventListener('input', (e) => filterOptionsAndSelect(e.target.value, els.ddProvOpts, false));
 
-        // EVENTOS PARA TECLA ENTER
         els.searchMonth.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                toggleDropdown(els.ddMonthPanel, els.ddMonthChev, true);
-            }
+            if (e.key === 'Enter') { e.preventDefault(); toggleDropdown(els.ddMonthPanel, els.ddMonthChev, true); }
         });
-        
         els.searchProv.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                toggleDropdown(els.ddProvPanel, els.ddProvChev, true);
-            }
+            if (e.key === 'Enter') { e.preventDefault(); toggleDropdown(els.ddProvPanel, els.ddProvChev, true); }
         });
 
         function updateBoliviaClock() {
@@ -663,7 +673,8 @@
             const allMonths = getAllValues(els.ddMonthOpts).length === getCheckedValues(els.ddMonthOpts).length;
             const allProvs = getAllValues(els.ddProvOpts).length === getCheckedValues(els.ddProvOpts).length;
             const isPendiente = els.chkPendiente ? els.chkPendiente.checked : false;
-            return allMonths && allProvs && !isPendiente;
+            const isDefaultSort = els.sortSelect ? els.sortSelect.value === 'monto-desc' : true;
+            return allMonths && allProvs && !isPendiente && isDefaultSort;
         }
 
         function updateDashboard() {
@@ -677,7 +688,6 @@
                 const facturado = normalizeYesNo(getCol(r, 'facturado'));
                 
                 const matchProv = selP.includes(prov);
-                
                 const matchMes = isPendiente ? true : selM.includes(mes); 
                 const matchEstado = isPendiente ? !facturado : true;
                 
@@ -733,17 +743,29 @@
                 if (isPendiente && val > 0) agg[key].hasPendiente = true;
             });
 
-            const selP = getCheckedValues(els.ddProvOpts);
-            const allP = getAllValues(els.ddProvOpts);
+            const sortVal = els.sortSelect ? els.sortSelect.value : 'monto-desc';
             
             const arr = Object.values(agg).filter(i => i.total > 0).sort((a, b) => {
-                if (selP.length > 0 && selP.length < allP.length) {
-                    if (a.prov === b.prov) {
+                switch (sortVal) {
+                    case 'monto-desc': 
+                        return b.total - a.total;
+                    case 'monto-asc': 
+                        return a.total - b.total;
+                    case 'az': 
+                        if (a.prov === b.prov) return MONTHS_ORDER.indexOf(a.mesRaw) - MONTHS_ORDER.indexOf(b.mesRaw);
+                        return a.prov.localeCompare(b.prov);
+                    case 'za': 
+                        if (a.prov === b.prov) return MONTHS_ORDER.indexOf(b.mesRaw) - MONTHS_ORDER.indexOf(a.mesRaw);
+                        return b.prov.localeCompare(a.prov);
+                    case 'mes-asc':
+                        if (MONTHS_ORDER.indexOf(a.mesRaw) === MONTHS_ORDER.indexOf(b.mesRaw)) return b.total - a.total;
                         return MONTHS_ORDER.indexOf(a.mesRaw) - MONTHS_ORDER.indexOf(b.mesRaw);
-                    }
-                    return a.prov.localeCompare(b.prov);
+                    case 'mes-desc':
+                        if (MONTHS_ORDER.indexOf(a.mesRaw) === MONTHS_ORDER.indexOf(b.mesRaw)) return b.total - a.total;
+                        return MONTHS_ORDER.indexOf(b.mesRaw) - MONTHS_ORDER.indexOf(a.mesRaw);
+                    default: 
+                        return b.total - a.total;
                 }
-                return b.total - a.total;
             });
 
             if(!arr.length) {
@@ -794,6 +816,9 @@
                 els.pTrack.style.animation = 'none'; void els.pTrack.offsetWidth; 
                 els.pTrack.style.animation = `scrollUp ${totalDuration / repeatCount}s linear infinite`;
             }
+
+            // REINICIO DE SCROLL: Regresa la vista física y de animación siempre al #1
+            els.pContainer.scrollTop = 0;
         }
 
         function updateMainChart(data, selectedMonths, isPendiente) {
