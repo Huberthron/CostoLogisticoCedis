@@ -454,15 +454,45 @@
         els.fInpMain.addEventListener('change', (e) => handleFile(e.target.files[0]));
         els.chkPendiente.addEventListener('change', () => { updateDashboard(); });
 
-        function filterOptions(term, container) {
+        // NUEVA LÓGICA DE FILTRADO Y AUTO-SELECCIÓN
+        function filterOptionsAndSelect(term, container, isMonth) {
             const search = normalizeStr(term);
-            container.querySelectorAll('label').forEach(lbl => {
+            const labels = container.querySelectorAll('label');
+            
+            labels.forEach(lbl => {
                 const txt = normalizeStr(lbl.textContent);
-                lbl.style.display = txt.includes(search) ? 'flex' : 'none';
+                const isMatch = txt.includes(search);
+                lbl.style.display = isMatch ? 'flex' : 'none';
+                
+                const checkbox = lbl.querySelector('input[type="checkbox"]');
+                if (search.length > 0) {
+                    checkbox.checked = isMatch; // Si busca, selecciona solo coincidencias
+                } else {
+                    checkbox.checked = true; // Si borra la búsqueda, selecciona todos
+                }
             });
+            
+            isMonth ? updateMonthLabel() : updateProviderLabel();
+            updateDashboard();
         }
-        els.searchMonth.addEventListener('input', (e) => filterOptions(e.target.value, els.ddMonthOpts));
-        els.searchProv.addEventListener('input', (e) => filterOptions(e.target.value, els.ddProvOpts));
+
+        els.searchMonth.addEventListener('input', (e) => filterOptionsAndSelect(e.target.value, els.ddMonthOpts, true));
+        els.searchProv.addEventListener('input', (e) => filterOptionsAndSelect(e.target.value, els.ddProvOpts, false));
+
+        // EVENTOS PARA TECLA ENTER
+        els.searchMonth.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                toggleDropdown(els.ddMonthPanel, els.ddMonthChev, true);
+            }
+        });
+        
+        els.searchProv.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                toggleDropdown(els.ddProvPanel, els.ddProvChev, true);
+            }
+        });
 
         function updateBoliviaClock() {
             const now = new Date();
@@ -648,9 +678,6 @@
                 
                 const matchProv = selP.includes(prov);
                 
-                // LÓGICA SOLICITADA:
-                // Si Global está activo, solo busca pendientes en TODOS los meses.
-                // Si Global está inactivo, obedece al filtro de meses y muestra todo estado (facturado o no).
                 const matchMes = isPendiente ? true : selM.includes(mes); 
                 const matchEstado = isPendiente ? !facturado : true;
                 
@@ -692,7 +719,6 @@
                 
                 const key = `${pv}|${mesRaw}`;
                 
-                // Creamos un registro único para Proveedor + Mes
                 if (!agg[key]) {
                     agg[key] = { 
                         prov: pv, 
@@ -707,19 +733,16 @@
                 if (isPendiente && val > 0) agg[key].hasPendiente = true;
             });
 
-            // Ordenamiento Inteligente
             const selP = getCheckedValues(els.ddProvOpts);
             const allP = getAllValues(els.ddProvOpts);
             
             const arr = Object.values(agg).filter(i => i.total > 0).sort((a, b) => {
-                // Si el usuario está viendo proveedores específicos, agrupamos por nombre y orden cronológico
                 if (selP.length > 0 && selP.length < allP.length) {
                     if (a.prov === b.prov) {
                         return MONTHS_ORDER.indexOf(a.mesRaw) - MONTHS_ORDER.indexOf(b.mesRaw);
                     }
                     return a.prov.localeCompare(b.prov);
                 }
-                // Si está viendo el panorama general (todos), ordenamos como ranking de mayor a menor monto
                 return b.total - a.total;
             });
 
@@ -728,7 +751,6 @@
                 els.pTrack.innerHTML = '<div class="text-center text-gray-500 text-xs mt-4 font-bold">Sin datos en esta selección</div>'; return;
             }
 
-            // Calculamos el máximo general para las barras
             const max = arr.reduce((m, i) => Math.max(m, i.total), 0); 
             let htmlStr = '';
             
