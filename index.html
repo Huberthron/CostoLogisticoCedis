@@ -234,6 +234,15 @@
                             </div>
                         </div>
 
+                        <!-- NUEVO FILTRO PENDIENTE -->
+                        <div class="flex-none relative w-full sm:w-auto min-w-[160px]">
+                            <label class="block text-[10px] font-bold text-[#00E5FF] uppercase tracking-wider mb-1 flex items-center gap-1"><i data-lucide="filter" class="w-3 h-3"></i> Filtro Global</label>
+                            <label class="w-full bg-dark-input border border-dark-border hover:border-[#00E5FF] text-white text-[11px] rounded-md focus-within:ring-1 focus-within:ring-[#00E5FF] outline-none cursor-pointer flex items-center gap-2 px-3 py-2 transition-colors shadow-sm">
+                                <input type="checkbox" id="filter-pendiente" class="w-4 h-4 rounded border-dark-border bg-dark-bg text-[#00E5FF] focus:ring-[#00E5FF] focus:ring-offset-0 transition-colors">
+                                <span class="truncate font-black text-[#00E5FF]">VER PENDIENTES</span>
+                            </label>
+                        </div>
+
                     </section>
 
                     <section class="flex-none">
@@ -388,13 +397,12 @@
         });
 
         // ============================================================
-        // 2. NUEVA LÓGICA DE CARGA BLINDADA (APPS SCRIPT + JWT)
+        // 2. LÓGICA DE CARGA Y FILTROS
         // ============================================================
         if (window.ChartDataLabels) Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { display: false });
         Chart.defaults.color = '#94a3b8';
 
-        // URL de tu Google Apps Script (Filtro de seguridad JWT)
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJpltbmK2rPRYgCbEhqqd7PkRgfP_m-nRv7GEyEkDaSN1VhG-YRJTKrqkH-PhLluj5og/exec";
         const AUTO_REFRESH_MINUTES = 5;
 
@@ -408,6 +416,7 @@
             sideBackdrop: document.getElementById('sidebar-backdrop'), btnToggleSide: document.getElementById('btn-toggle-sidebar'), btnCloseSide: document.getElementById('btn-close-sidebar'), load: document.getElementById('loading-overlay'), lastUp: document.getElementById('last-updated'), loadMsg: document.getElementById('load-msg'),
             ddMonthBtn: document.getElementById('btn-dd-month'), ddMonthPanel: document.getElementById('panel-dd-month'), ddMonthOpts: document.getElementById('opts-dd-month'), ddMonthLbl: document.getElementById('lbl-dd-month'), ddMonthChev: document.getElementById('chev-dd-month'),
             ddProvBtn: document.getElementById('btn-dd-provider'), ddProvPanel: document.getElementById('panel-dd-provider'), ddProvOpts: document.getElementById('opts-dd-provider'), ddProvLbl: document.getElementById('lbl-dd-provider'), ddProvChev: document.getElementById('chev-dd-provider'),
+            chkPendiente: document.getElementById('filter-pendiente'), // Nuevo elemento PENDIENTE
             cClMes: document.getElementById('card-cl-mes-actual'), cClFact: document.getElementById('card-cl-facturado'), cClPend: document.getElementById('card-cl-pendiente'), cClAcum: document.getElementById('card-cl-acumulado'),
             cAvM: document.getElementById('card-avance-mensual'), bAvM: document.getElementById('bar-avance'), pTrack: document.getElementById('provider-track'), donutPct: document.getElementById('donut-pct'), searchMonth: document.getElementById('search-month'), searchProv: document.getElementById('search-provider')
         };
@@ -443,6 +452,7 @@
         };
 
         els.fInpMain.addEventListener('change', (e) => handleFile(e.target.files[0]));
+        els.chkPendiente.addEventListener('change', () => { updateDashboard(); });
 
         function filterOptions(term, container) {
             const search = normalizeStr(term);
@@ -497,7 +507,6 @@
             btn.dataset.target === 'month' ? updateMonthLabel() : updateProviderLabel(); updateDashboard();
         }));
 
-        // --- LÓGICA DE EXTRACCIÓN SEGURA (POST A APPS SCRIPT) ---
         async function fetchSecureData(silent = false) {
             if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes("TU_URL")) {
                 showToast("Falta configurar la URL del Apps Script", "error");
@@ -557,7 +566,6 @@
             if (AUTO_REFRESH_MINUTES > 0) setInterval(() => fetchSecureData(true), AUTO_REFRESH_MINUTES * 60 * 1000);
         }
 
-        // --- LÓGICA DE CARGA MANUAL CON ARCHIVO (RESPALDO) ---
         async function handleFile(file) {
             if (!file) return; els.load.classList.replace('hidden', 'flex'); els.loadMsg.textContent = "Procesando archivo local...";
             try { 
@@ -620,30 +628,68 @@
             else els.ddProvLbl.textContent = `${sel.length} proveedores seleccionados`;
         }
 
+        // Verifica si el panel está en estado default o si el usuario hizo un filtro
+        function isDefaultState() {
+            if (!els.ddMonthOpts || !els.ddProvOpts) return true;
+            const allMonths = getAllValues(els.ddMonthOpts).length === getCheckedValues(els.ddMonthOpts).length;
+            const allProvs = getAllValues(els.ddProvOpts).length === getCheckedValues(els.ddProvOpts).length;
+            const isPendiente = els.chkPendiente ? els.chkPendiente.checked : false;
+            return allMonths && allProvs && !isPendiente;
+        }
+
         function updateDashboard() {
-            const selM = getCheckedValues(els.ddMonthOpts); const selP = getCheckedValues(els.ddProvOpts);
-            const data = rawData.costoLogistico.filter(r => { const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); const prov = String(getCol(r, 'proveedor') || '').trim(); return selM.includes(mes) && selP.includes(prov); });
+            const selM = getCheckedValues(els.ddMonthOpts); 
+            const selP = getCheckedValues(els.ddProvOpts);
+            const isPendiente = els.chkPendiente.checked;
+
+            const data = rawData.costoLogistico.filter(r => { 
+                const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); 
+                const prov = String(getCol(r, 'proveedor') || '').trim(); 
+                const facturado = normalizeYesNo(getCol(r, 'facturado'));
+                
+                const matchProv = selP.includes(prov);
+                
+                // Si el Filtro Pendiente está activo, validamos a TODOS LOS MESES y solo Facturado == NO
+                const matchMes = isPendiente ? true : selM.includes(mes); 
+                const matchEstado = isPendiente ? !facturado : true;
+                
+                return matchProv && matchMes && matchEstado; 
+            });
             
             const cMes = data.reduce((s, r) => s + parseNum(getCol(r, 'costo log. a cobrar')), 0);
             let fact = 0, pend = 0, cobrTotal = 0; 
-            data.forEach(r => { const val = parseNum(getCol(r, 'costo log. a cobrar')); normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val; if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val; });
+            data.forEach(r => { 
+                const val = parseNum(getCol(r, 'costo log. a cobrar')); 
+                normalizeYesNo(getCol(r, 'facturado')) ? fact += val : pend += val; 
+                if(normalizeYesNo(getCol(r, 'cobrado'))) cobrTotal += val; 
+            });
             
             const deud = rawData.deudores.filter(r => { const prov = String(getCol(r, 'proveedor')||'').trim(); return selP.includes(prov); }).reduce((s, r) => s + parseNum(getCol(r, 'monto')), 0);
             const pctA = cMes > 0 ? (fact/cMes)*100 : 0;
 
-            els.cClMes.textContent = formatCurrency(cMes); els.cClFact.textContent = formatCurrency(fact); els.cClPend.textContent = formatCurrency(pend); els.cClAcum.textContent = formatCurrency(pend + deud);
-            els.cAvM.textContent = pctA.toFixed(1) + '%'; els.bAvM.style.width = Math.min(pctA,100)+'%';
+            els.cClMes.textContent = formatCurrency(cMes); 
+            els.cClFact.textContent = formatCurrency(fact); 
+            els.cClPend.textContent = formatCurrency(pend); 
+            els.cClAcum.textContent = formatCurrency(pend + deud);
+            els.cAvM.textContent = pctA.toFixed(1) + '%'; 
+            els.bAvM.style.width = Math.min(pctA,100)+'%';
 
             const pAnualTotal = rawData.proyeccion.reduce((s, r) => s + parseNum(getCol(r, 'py costo log. monto')), 0);
-            updateList(data); updateMainChart(data, selM); updateDonutChart(cobrTotal, pAnualTotal);
+            
+            updateList(data); 
+            updateMainChart(data, selM, isPendiente); 
+            updateDonutChart(cobrTotal, pAnualTotal);
         }
 
         function updateList(data) {
             const agg = {};
             data.forEach(r => {
-                const pv = getCol(r, 'proveedor') || 'Desconocido'; const val = parseNum(getCol(r, 'costo log. a cobrar')); const isPendiente = !normalizeYesNo(getCol(r, 'facturado')); 
+                const pv = getCol(r, 'proveedor') || 'Desconocido'; 
+                const val = parseNum(getCol(r, 'costo log. a cobrar')); 
+                const isPendiente = !normalizeYesNo(getCol(r, 'facturado')); 
                 if (!agg[pv]) agg[pv] = { total: 0, hasPendiente: false };
-                agg[pv].total += val; if (isPendiente && val > 0) agg[pv].hasPendiente = true;
+                agg[pv].total += val; 
+                if (isPendiente && val > 0) agg[pv].hasPendiente = true;
             });
 
             const arr = Object.entries(agg).map(([prov, d]) => ({prov, total: d.total, status: d.hasPendiente ? 'Pendiente' : 'Al día'})).filter(i => i.total > 0).sort((a,b) => b.total - a.total);
@@ -681,21 +727,32 @@
                 `;
             });
 
-            const repeatCount = arr.length < 5 ? 4 : 2; 
-            els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
-            const speedPerItem = 2.5; const totalDuration = arr.length * repeatCount * speedPerItem;
-            
-            els.pTrack.style.animation = 'none'; void els.pTrack.offsetWidth; 
-            els.pTrack.style.animation = `scrollUp ${totalDuration / repeatCount}s linear infinite`;
+            // Lógica de parálisis de filtro manual
+            const isInteractive = !isDefaultState();
+
+            if (isInteractive) {
+                els.pTrack.innerHTML = htmlStr; // Solo mostramos una vez (sin repetir duplicados para scroll)
+                els.pTrack.style.animation = 'none'; // Detenemos la animación
+            } else {
+                const repeatCount = arr.length < 5 ? 4 : 2; 
+                els.pTrack.innerHTML = htmlStr.repeat(repeatCount);
+                const speedPerItem = 2.5; const totalDuration = arr.length * repeatCount * speedPerItem;
+                
+                els.pTrack.style.animation = 'none'; void els.pTrack.offsetWidth; 
+                els.pTrack.style.animation = `scrollUp ${totalDuration / repeatCount}s linear infinite`;
+            }
         }
 
-        function updateMainChart(data, selectedMonths) {
+        function updateMainChart(data, selectedMonths, isPendiente) {
             const monthsWithProjection = new Set();
             rawData.proyeccion.forEach(r => { const mes = String(getCol(r, 'mes') || '').toLowerCase().trim(); if (mes) monthsWithProjection.add(mes); });
             const fullMonths = MONTHS_ORDER.filter(m => monthsWithProjection.has(m)); const selSet = new Set(selectedMonths);
 
             const pData = fullMonths.map(m => { const r = rawData.proyeccion.find(x => String(getCol(x, 'mes')).toLowerCase().trim() === m); return r ? parseNum(getCol(r, 'py costo log. monto')) : 0; });
-            const rData = fullMonths.map(m => { if (!selSet.has(m)) return null; return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+parseNum(getCol(x, 'costo log. a cobrar')),0); });
+            const rData = fullMonths.map(m => { 
+                if (!isPendiente && !selSet.has(m)) return null; 
+                return data.filter(x => String(getCol(x, 'mes')).toLowerCase().trim() === m).reduce((s,x)=>s+parseNum(getCol(x, 'costo log. a cobrar')),0); 
+            });
 
             if(chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
@@ -769,7 +826,6 @@
             });
         }
 
-        // Ejecutar revisión de seguridad al cargar la página
         checkAuth();
     </script>
 </body>
