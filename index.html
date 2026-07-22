@@ -761,7 +761,17 @@
 
             const pAnualTotal = rawData.proyeccion.reduce((s, r) => s + parseNum(getCol(r, 'py costo log. monto')), 0);
             
-            updateList(data); 
+            // ==========================================
+            // CAMBIO ESPECÍFICO PARA EL PANEL IZQUIERDO:
+            // Aseguramos que la lista lateral siempre respete el filtro
+            // de meses, incluso si el checkbox global "Ver Pendientes" está activo.
+            // ==========================================
+            const dataPanelIzquierdo = data.filter(r => {
+                const mes = String(getCol(r, 'mes') || '').toLowerCase().trim();
+                return selM.includes(mes);
+            });
+            updateList(dataPanelIzquierdo); 
+            
             updateMainChart(data, selM, isPendiente); 
             updateDonutChart(cobrTotal, pAnualTotal);
         }
